@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync, realpathSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -21,6 +21,13 @@ function gitOk(args: string[], cwd: string): void {
   if (r.status !== 0) {
     throw new Error(`git ${args.join(" ")} failed: ${r.stderr}`);
   }
+}
+
+function expectSameDirectory(actual: string, expected: string): void {
+  const actualStat = statSync(actual);
+  const expectedStat = statSync(expected);
+  expect(actualStat.dev).toBe(expectedStat.dev);
+  expect(actualStat.ino).toBe(expectedStat.ino);
 }
 
 describe("git module (integration against a real temp repo)", () => {
@@ -47,7 +54,7 @@ describe("git module (integration against a real temp repo)", () => {
   });
 
   it("repoRoot returns the top-level repo path", () => {
-    expect(realpathSync(repoRoot())).toBe(realpathSync(tmp));
+    expectSameDirectory(repoRoot(), tmp);
   });
 
   it("hasCommits is false before the first commit and true after", () => {
