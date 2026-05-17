@@ -24,6 +24,13 @@ describe("parseChoice", () => {
     expect(parseChoice("r")).toBe("regen");
     expect(parseChoice("regen")).toBe("regen");
     expect(parseChoice("regenerate")).toBe("regen");
+    expect(parseChoice("try again")).toBe("regen");
+  });
+
+  it("maps instruct-aliases", () => {
+    expect(parseChoice("i")).toBe("instruct");
+    expect(parseChoice("instruct")).toBe("instruct");
+    expect(parseChoice("instruction")).toBe("instruct");
   });
 
   it("returns unknown for anything else", () => {

@@ -21,16 +21,23 @@ gitai .                   # stage everything, then commit
 gitai src/                # stage one path, then commit
 ```
 
-When `gitai` runs it streams the message and prompts you:
+When `gitai` runs it streams the message and opens an action picker:
 
 ```
-Commit? [Y]es / [e]dit / [r]egenerate / [n]o:
+Choose next action:
+Use ↑/↓ and Enter to select.
+› Commit     use this message
+  Edit       open the message in your editor
+  Try Again  regenerate without extra instructions
+  Instruct   add guidance and regenerate
+  Abort      do not commit
 ```
 
-- **Enter** or `y` — commit
-- `e` — open the message in `$EDITOR` (default: `vi` on macOS/Linux, `notepad` on Windows)
-- `r` — discard and stream a new draft
-- `n` — abort
+- **Commit** — use this message
+- **Edit** — open the message in `$EDITOR` (default: `vi` on macOS/Linux, `notepad` on Windows)
+- **Try Again** — discard and stream a new draft
+- **Instruct** — add guidance, then stream a new draft
+- **Abort** — stop without committing
 
 ## Common flags
 

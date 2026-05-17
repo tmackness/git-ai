@@ -17,7 +17,7 @@ import {
 import { isGitRepo, addPaths, stagedDiff, stagedFiles, commitWithMessage } from "./git.js";
 import { generateMessage } from "./generate.js";
 import { editInEditor } from "./editor.js";
-import { ask, parseChoice, selectFromSections } from "./prompt.js";
+import { ask, selectFromList, selectFromSections } from "./prompt.js";
 import { runSetupWizard } from "./setup.js";
 import { c, sym } from "./colors.js";
 
@@ -138,6 +138,37 @@ function renderModelOption(option: ModelOption): string {
   const keyHint =
     option.spec.apiKeyRequired === false ? "no API key" : option.spec.envVar;
   return `${option.modelId.padEnd(58)} ${c.dim(option.spec.label)} ${c.dim(`(${keyHint})`)}`;
+}
+
+type CommitAction = "commit" | "edit" | "try-again" | "instruct" | "abort";
+
+interface CommitActionOption {
+  action: CommitAction;
+  label: string;
+  description: string;
+}
+
+function commitActions(): CommitActionOption[] {
+  return [
+    { action: "commit", label: "Commit", description: "use this message" },
+    { action: "edit", label: "Edit", description: "open the message in your editor" },
+    { action: "try-again", label: "Try Again", description: "regenerate without extra instructions" },
+    { action: "instruct", label: "Instruct", description: "add guidance and regenerate" },
+    { action: "abort", label: "Abort", description: "do not commit" },
+  ];
+}
+
+function renderCommitAction(option: CommitActionOption): string {
+  return `${option.label.padEnd(10)} ${c.dim(option.description)}`;
+}
+
+async function chooseCommitAction(): Promise<CommitAction> {
+  const selected = await selectFromList(
+    "Choose next action:",
+    commitActions(),
+    renderCommitAction,
+  );
+  return selected?.action ?? "abort";
 }
 
 async function chooseModel(
@@ -281,7 +312,7 @@ export async function main(
   }
 
   const files = stagedFiles();
-  const hint = values.prompt as string | undefined;
+  let hint = values.prompt as string | undefined;
   const printChunk = (chunk: string) => stdout.write(c.dim(chunk));
 
   stdout.write(`\n${header(modelId)}\n\n`);
@@ -292,12 +323,9 @@ export async function main(
   stdout.write("\n");
 
   while (!values.yes) {
-    const answer = await ask(
-      `\n${c.cyan("?")} ${c.bold("Commit")} ${c.dim("[Y]es / [e]dit / [r]egenerate / [n]o:")} `,
-    );
-    const choice = parseChoice(answer);
-    if (choice === "yes") break;
-    if (choice === "no") {
+    const choice = await chooseCommitAction();
+    if (choice === "commit") break;
+    if (choice === "abort") {
       stdout.write(c.dim("aborted\n"));
       return 0;
     }
@@ -306,13 +334,19 @@ export async function main(
       stdout.write(`\n${c.bold("Edited message")}\n${message}\n`);
       continue;
     }
-    if (choice === "regen") {
-      stdout.write(`\n${c.dim(`${sym.arrow} regenerating...`)}\n\n`);
+    if (choice === "try-again" || choice === "instruct") {
+      if (choice === "instruct") {
+        const instruction = await ask(`\n${c.cyan("?")} ${c.bold("Instruction for next draft:")} `);
+        if (instruction) {
+          hint = hint ? `${hint}\n${instruction}` : instruction;
+        }
+      }
+      const label = choice === "instruct" ? "regenerating with instructions..." : "regenerating...";
+      stdout.write(`\n${c.dim(`${sym.arrow} ${label}`)}\n\n`);
       message = await generateMessage({ modelId, diff, files, hint, onChunk: printChunk });
       stdout.write("\n");
       continue;
     }
-    stdout.write(c.yellow("(unrecognized — type y, e, r, or n)\n"));
   }
 
   if (!message) return die("empty commit message");

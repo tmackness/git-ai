@@ -5,14 +5,15 @@ import {
 } from "node:readline";
 import { c } from "./colors.js";
 
-export type Choice = "yes" | "no" | "edit" | "regen" | "unknown";
+export type Choice = "yes" | "no" | "edit" | "regen" | "instruct" | "unknown";
 
 export function parseChoice(input: string): Choice {
   const s = input.trim().toLowerCase();
   if (s === "" || s === "y" || s === "yes") return "yes";
   if (s === "n" || s === "no") return "no";
   if (s === "e" || s === "edit") return "edit";
-  if (s === "r" || s === "regen" || s === "regenerate") return "regen";
+  if (s === "r" || s === "regen" || s === "regenerate" || s === "try again") return "regen";
+  if (s === "i" || s === "instruct" || s === "instruction") return "instruct";
   return "unknown";
 }
 
@@ -49,12 +50,20 @@ export interface SelectSection<T> {
   items: T[];
 }
 
+interface SelectRow<T> {
+  type: "item";
+  item: T;
+  itemIndex: number;
+  label?: string;
+}
+
 export async function selectFromSections<T>(
   prompt: string,
   sections: SelectSection<T>[],
   render: (item: T, idx: number) => string,
 ): Promise<T | null> {
-  const items = sections.flatMap((section) => section.items);
+  const rows = selectRows(sections);
+  const items = rows.map((row) => row.item);
   if (items.length === 0) return null;
   const stdin = process.stdin;
   const stdout = process.stdout;
@@ -68,7 +77,7 @@ export async function selectFromSections<T>(
   }
 
   stdout.write(prompt + "\n");
-  const width = items.length.toString().length;
+  const width = rows.length.toString().length;
   let n = 1;
   for (const section of sections) {
     if (section.label) stdout.write(`${c.dim(section.label)}\n`);
@@ -83,6 +92,18 @@ export async function selectFromSections<T>(
   return items[selected - 1] ?? null;
 }
 
+function selectRows<T>(sections: SelectSection<T>[]): SelectRow<T>[] {
+  const rows: SelectRow<T>[] = [];
+  let itemIndex = 0;
+  for (const section of sections) {
+    for (const item of section.items) {
+      rows.push({ type: "item", item, itemIndex, label: section.label });
+      itemIndex++;
+    }
+  }
+  return rows;
+}
+
 interface Keypress {
   name?: string;
   ctrl?: boolean;
@@ -94,31 +115,45 @@ async function selectFromSectionsTTY<T>(
   sections: SelectSection<T>[],
   render: (item: T, idx: number) => string,
 ): Promise<T | null> {
-  const items = sections.flatMap((section) => section.items);
+  const rows = selectRows(sections);
   const stdin = process.stdin;
   const stdout = process.stdout;
   let selected = 0;
   let renderedRows = 0;
   const wasRaw = stdin.isRaw;
+  const visibleLimit = Math.max(
+    6,
+    Math.min(12, (stdout.rows ?? 24) - 6),
+  );
+
+  const visibleRange = () => {
+    const half = Math.floor(visibleLimit / 2);
+    let start = Math.max(0, selected - half);
+    const end = Math.min(rows.length, start + visibleLimit);
+    start = Math.max(0, end - visibleLimit);
+    return { start, end };
+  };
 
   const renderList = () => {
     if (renderedRows > 0) {
       stdout.write(`\x1b[${renderedRows}A\x1b[J`);
     }
     const lines = [prompt, c.dim("Use ↑/↓ and Enter to select.")];
-    let rowIdx = 0;
-    for (const section of sections) {
-      if (section.label) {
+    const { start, end } = visibleRange();
+    if (start > 0) lines.push(c.dim(`… ${start} more above`));
+    let lastLabel: string | undefined;
+    for (let rowIdx = start; rowIdx < end; rowIdx++) {
+      const row = rows[rowIdx]!;
+      if (row.label && row.label !== lastLabel) {
         if (rowIdx > 0) lines.push(c.dim("─".repeat(24)));
-        lines.push(c.dim(section.label));
+        lines.push(c.dim(row.label));
+        lastLabel = row.label;
       }
-      for (const item of section.items) {
-        const prefix = rowIdx === selected ? c.cyan("›") : " ";
-        const row = render(item, rowIdx);
-        lines.push(`${prefix} ${rowIdx === selected ? c.bold(row) : row}`);
-        rowIdx++;
-      }
+      const prefix = rowIdx === selected ? c.cyan("›") : " ";
+      const content = render(row.item, row.itemIndex);
+      lines.push(`${prefix} ${rowIdx === selected ? c.bold(content) : content}`);
     }
+    if (end < rows.length) lines.push(c.dim(`… ${rows.length - end} more below`));
     stdout.write(lines.join("\n") + "\n");
     renderedRows = lines.length;
   };
@@ -136,17 +171,17 @@ async function selectFromSectionsTTY<T>(
         process.exit(130);
       }
       if (key.name === "up") {
-        selected = selected === 0 ? items.length - 1 : selected - 1;
+        selected = selected === 0 ? rows.length - 1 : selected - 1;
         renderList();
         return;
       }
       if (key.name === "down") {
-        selected = selected === items.length - 1 ? 0 : selected + 1;
+        selected = selected === rows.length - 1 ? 0 : selected + 1;
         renderList();
         return;
       }
       if (key.name === "return" || key.name === "enter" || key.sequence === "\r") {
-        const item = items[selected] ?? null;
+        const item = rows[selected]?.item ?? null;
         cleanup();
         resolve(item);
       }
