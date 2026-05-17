@@ -39,6 +39,14 @@ export function isGitRepo(): boolean {
   return r.status === 0;
 }
 
+export function repoRoot(): string {
+  const r = run(["rev-parse", "--show-toplevel"]);
+  if (r.status !== 0) {
+    throw new GitError("git rev-parse --show-toplevel failed", r.status, r.stderr);
+  }
+  return r.stdout.trim();
+}
+
 export function addPaths(paths: string[]): void {
   if (paths.length === 0) return;
   const r = run(["add", "--", ...paths], { stdio: "inherit" });

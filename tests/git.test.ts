@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   isGitRepo,
+  repoRoot,
   addPaths,
   stagedDiff,
   stagedFiles,
@@ -40,6 +41,10 @@ describe("git module (integration against a real temp repo)", () => {
 
   it("isGitRepo returns true inside a repo", () => {
     expect(isGitRepo()).toBe(true);
+  });
+
+  it("repoRoot returns the top-level repo path", () => {
+    expect(realpathSync(repoRoot())).toBe(realpathSync(tmp));
   });
 
   it("isGitRepo returns false outside a repo", () => {

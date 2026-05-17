@@ -50,10 +50,34 @@ gitai -m anthropic:claude-3-5-haiku-latest    # pick a different model
 gitai -m                         # choose from configured models first, then all others
 gitai -m cloudflare:openai/gpt-4o-mini        # route through Cloudflare AI Gateway
 gitai -p "fixes the flaky timeout"            # extra context for the model
+gitai --release-please          # force release-please-aware commit guidance
+gitai --no-release-please       # disable release-please auto-detection
 gitai --providers                # list every bundled provider and its env var
 gitai --setup                    # save a default model and API key
 gitai --help                     # full flag list
 ```
+
+## Release Please
+
+`gitai` writes Conventional Commits by default, which already works well with release automation. When a repo uses [release-please](https://github.com/googleapis/release-please), `gitai` detects it and gives the model stricter guidance about release impact before drafting the message.
+
+Detection looks for:
+
+- `release-please-config.json`
+- `.release-please-manifest.json`
+- `.github/workflows/*.yml` or `.yaml` files that reference release-please
+
+When enabled, `gitai` nudges the draft toward release-please-friendly messages:
+
+- `feat:` for user-visible new capability, usually a minor release
+- `fix:` for user-visible bug fixes, usually a patch release
+- `perf:` for user-visible performance improvements
+- `docs:`, `test:`, `chore:`, `ci:`, `build:`, `refactor:`, and `style:` only when that is the real change type
+- `type(scope)!:` plus a `BREAKING CHANGE:` footer only when the staged diff clearly introduces incompatible behavior
+
+For monorepos with a release-please manifest, `gitai` also passes configured package paths and affected packages into the prompt so scopes are more likely to match the component being released.
+
+The CLI prints whether release-please guidance is enabled, forced, or disabled before generating the commit message. Use `--release-please` for repos with unusual release-please setup that auto-detection misses, or `--no-release-please` when you want the plain Conventional Commit prompt.
 
 ## Bundled providers
 

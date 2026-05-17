@@ -53,6 +53,7 @@ describe("main (paths that don't hit the network or git)", () => {
     expect(code).toBe(0);
     expect(s.getStdout()).toContain("AI-generated git commits");
     expect(s.getStdout()).toContain("gitai [paths...]");
+    expect(s.getStdout()).toContain("--release-please");
   });
 
   it("-h shorthand prints help", async () => {
@@ -231,5 +232,16 @@ describe("main (paths that don't hit the network or git)", () => {
     );
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/gitai:/);
+  });
+
+  it("rejects conflicting release-please flags", async () => {
+    const s = captureStreams();
+    const code = await main(
+      ["--release-please", "--no-release-please"],
+      { stdout: s.stdout, stderr: s.stderr, env: s.env },
+    );
+
+    expect(code).toBe(1);
+    expect(s.getStderr()).toMatch(/either --release-please or --no-release-please/);
   });
 });

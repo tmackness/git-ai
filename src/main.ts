@@ -14,8 +14,9 @@ import {
   hasProviderConfig,
   type ModelOption,
 } from "./modelOptions.js";
-import { isGitRepo, addPaths, stagedDiff, stagedFiles, commitWithMessage } from "./git.js";
+import { isGitRepo, repoRoot, addPaths, stagedDiff, stagedFiles, commitWithMessage } from "./git.js";
 import { generateMessage } from "./generate.js";
+import { detectReleasePlease, type ReleasePleaseContext } from "./releasePlease.js";
 import { editInEditor } from "./editor.js";
 import { ask, selectFromList, selectFromSections } from "./prompt.js";
 import { runSetupWizard } from "./setup.js";
@@ -38,6 +39,9 @@ ${c.bold("Options:")}
   -p, --prompt <hint>    extra context for the model
       --providers        list bundled providers and their env vars
       --setup            save a default model and API key
+      --release-please   force release-please commit guidance
+      --no-release-please
+                         disable release-please auto-detection
   -h, --help             show this help
   -v, --version          show version
 
@@ -162,6 +166,31 @@ function renderCommitAction(option: CommitActionOption): string {
   return `${option.label.padEnd(10)} ${c.dim(option.description)}`;
 }
 
+function renderReleasePleaseStatus(
+  detected: ReleasePleaseContext | undefined,
+  enabled: ReleasePleaseContext | undefined,
+  force: boolean,
+  disabled: boolean,
+): string | null {
+  if (enabled?.detected) {
+    const sourceText = enabled.sources.length > 0
+      ? c.dim(` ${sym.bullet} ${enabled.sources.join(", ")}`)
+      : "";
+    const mode = force ? c.cyan("forced") : c.green("enabled");
+    return `${c.magenta(sym.sparkle)} ${c.bold("release-please")} ${mode}${sourceText}`;
+  }
+
+  if (disabled && detected?.detected) {
+    return `${c.yellow(sym.cross)} ${c.bold("release-please")} ${c.yellow("detected, disabled")} ${c.dim(`(${detected.sources.join(", ")})`)}`;
+  }
+
+  if (disabled) {
+    return `${c.yellow(sym.cross)} ${c.bold("release-please")} ${c.yellow("disabled")}`;
+  }
+
+  return null;
+}
+
 async function chooseCommitAction(): Promise<CommitAction> {
   const selected = await selectFromList(
     "Choose next action:",
@@ -216,6 +245,8 @@ export async function main(
         prompt: { type: "string", short: "p" },
         providers: { type: "boolean", default: false },
         setup: { type: "boolean", default: false },
+        "release-please": { type: "boolean" },
+        "no-release-please": { type: "boolean" },
         help: { type: "boolean", short: "h", default: false },
         version: { type: "boolean", short: "v", default: false },
       },
@@ -245,6 +276,12 @@ export async function main(
 
   if (values.setup) {
     return runSetupWizard({ stdout, stderr, env });
+  }
+
+  const forceReleasePlease = values["release-please"] === true;
+  const disableReleasePlease = values["no-release-please"] === true;
+  if (forceReleasePlease && disableReleasePlease) {
+    return die("use either --release-please or --no-release-please, not both");
   }
 
   const savedConfig = loadConfig(env);
@@ -299,6 +336,8 @@ export async function main(
 
   if (!isGitRepo()) return die("not inside a git repository");
 
+  const root = repoRoot();
+
   if (positionals.length > 0) {
     addPaths(positionals);
   }
@@ -312,14 +351,37 @@ export async function main(
   }
 
   const files = stagedFiles();
+  const detectedReleasePlease = detectReleasePlease(root, files);
+  const releasePlease: ReleasePleaseContext | undefined =
+    forceReleasePlease && !detectedReleasePlease?.detected
+      ? {
+          detected: true,
+          sources: ["--release-please"],
+          packagePaths: [],
+          releaseTypes: [],
+          changelogTypes: [],
+          affectedPackages: [],
+        }
+      : detectedReleasePlease?.detected
+        ? disableReleasePlease ? undefined : detectedReleasePlease
+        : undefined;
+  const releasePleaseStatus = renderReleasePleaseStatus(
+    detectedReleasePlease,
+    releasePlease,
+    forceReleasePlease,
+    disableReleasePlease,
+  );
   let hint = values.prompt as string | undefined;
   const printChunk = (chunk: string) => stdout.write(c.dim(chunk));
 
   stdout.write(`\n${header(modelId)}\n\n`);
   stdout.write(`${c.bold("Staged files")}\n${renderFileSummary(files)}\n\n`);
+  if (releasePleaseStatus) {
+    stdout.write(`${releasePleaseStatus}\n\n`);
+  }
   stdout.write(`${c.dim(`${sym.arrow} generating commit message...`)}\n\n`);
 
-  let message = await generateMessage({ modelId, diff, files, hint, onChunk: printChunk });
+  let message = await generateMessage({ modelId, diff, files, hint, releasePlease, onChunk: printChunk });
   stdout.write("\n");
 
   while (!values.yes) {
@@ -343,7 +405,7 @@ export async function main(
       }
       const label = choice === "instruct" ? "regenerating with instructions..." : "regenerating...";
       stdout.write(`\n${c.dim(`${sym.arrow} ${label}`)}\n\n`);
-      message = await generateMessage({ modelId, diff, files, hint, onChunk: printChunk });
+      message = await generateMessage({ modelId, diff, files, hint, releasePlease, onChunk: printChunk });
       stdout.write("\n");
       continue;
     }

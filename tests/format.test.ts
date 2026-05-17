@@ -62,4 +62,24 @@ describe("buildUserPrompt", () => {
     expect(buildUserPrompt("d", "f", "   ")).not.toMatch(/Extra context/);
     expect(buildUserPrompt("d", "f", undefined)).not.toMatch(/Extra context/);
   });
+
+  it("adds release-please guidance when provided", () => {
+    const out = buildUserPrompt(
+      "d",
+      "M  packages/cli/src/main.ts",
+      undefined,
+      {
+        detected: true,
+        sources: ["release-please-config.json"],
+        packagePaths: ["packages/cli"],
+        releaseTypes: ["node"],
+        changelogTypes: ["feat", "fix"],
+        affectedPackages: ["cli"],
+      },
+    );
+
+    expect(out).toContain("This repository uses release-please.");
+    expect(out).toContain("Affected release package(s): cli");
+    expect(out).toContain("never generate chore(release): messages");
+  });
 });

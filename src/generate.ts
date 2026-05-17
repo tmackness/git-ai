@@ -9,6 +9,7 @@ import { deepseek } from "@ai-sdk/deepseek";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { PROVIDERS, SYSTEM_PROMPT, modelNameOf, providerOf } from "./config.js";
 import { buildUserPrompt, cleanMessage } from "./format.js";
+import type { ReleasePleaseContext } from "./releasePlease.js";
 
 function cloudflareBaseURL(): string {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -70,12 +71,13 @@ export interface GenerateOptions {
   diff: string;
   files: string;
   hint?: string;
+  releasePlease?: ReleasePleaseContext;
   onChunk?: (chunk: string) => void;
 }
 
 export async function generateMessage(opts: GenerateOptions): Promise<string> {
-  const { modelId, diff, files, hint, onChunk } = opts;
-  const prompt = buildUserPrompt(diff, files, hint);
+  const { modelId, diff, files, hint, releasePlease, onChunk } = opts;
+  const prompt = buildUserPrompt(diff, files, hint, releasePlease);
 
   const result = streamText({
     model: getModel(modelId),
