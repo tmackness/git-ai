@@ -52,6 +52,14 @@ describe("buildUserPrompt", () => {
     expect(out).toContain("```diff");
   });
 
+  it("uses a bounded summary prompt for initial commits", () => {
+    const out = buildUserPrompt("", " package.json | 20 +++++", undefined, undefined, "initial-summary");
+    expect(out).toContain("Initial commit");
+    expect(out).toContain("package.json");
+    expect(out).toContain("chore: initial commit");
+    expect(out).not.toContain("```diff");
+  });
+
   it("appends developer hint when provided", () => {
     const out = buildUserPrompt("d", "f", "fixes bug 123");
     expect(out).toMatch(/Extra context from the developer: fixes bug 123/);

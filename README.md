@@ -57,6 +57,8 @@ gitai --setup                    # save a default model and API key
 gitai --help                     # full flag list
 ```
 
+In a repository with no commits yet, `gitai` treats the staged changes as an initial commit and sends the model a bounded staged summary instead of buffering the full first diff. That keeps `gitai .` usable even when a new repo accidentally stages a large import.
+
 ## Release Please
 
 `gitai` writes Conventional Commits by default, which already works well with release automation. When a repo uses [release-please](https://github.com/googleapis/release-please), `gitai` detects it and gives the model stricter guidance about release impact before drafting the message.

@@ -6,9 +6,12 @@ import { join } from "node:path";
 import {
   isGitRepo,
   repoRoot,
+  hasCommits,
   addPaths,
+  hasStagedChanges,
   stagedDiff,
   stagedFiles,
+  stagedSummary,
   commitWithMessage,
   GitError,
 } from "../src/git.js";
@@ -45,6 +48,14 @@ describe("git module (integration against a real temp repo)", () => {
 
   it("repoRoot returns the top-level repo path", () => {
     expect(realpathSync(repoRoot())).toBe(realpathSync(tmp));
+  });
+
+  it("hasCommits is false before the first commit and true after", () => {
+    expect(hasCommits()).toBe(false);
+    writeFileSync(join(tmp, "a.txt"), "alpha\n");
+    addPaths(["a.txt"]);
+    commitWithMessage("chore: initial commit");
+    expect(hasCommits()).toBe(true);
   });
 
   it("isGitRepo returns false outside a repo", () => {
@@ -86,12 +97,27 @@ describe("git module (integration against a real temp repo)", () => {
     expect(stagedDiff()).toBe("");
   });
 
+  it("hasStagedChanges checks the index without reading the diff", () => {
+    expect(hasStagedChanges()).toBe(false);
+    writeFileSync(join(tmp, "a.txt"), "alpha\n");
+    addPaths(["a.txt"]);
+    expect(hasStagedChanges()).toBe(true);
+  });
+
   it("stagedDiff returns diff content for staged changes", () => {
     writeFileSync(join(tmp, "a.txt"), "alpha\n");
     addPaths(["a.txt"]);
     const diff = stagedDiff();
     expect(diff).toContain("alpha");
     expect(diff).toContain("a.txt");
+  });
+
+  it("stagedSummary returns a bounded stat summary for staged changes", () => {
+    writeFileSync(join(tmp, "a.txt"), `${"alpha\n".repeat(1000)}`);
+    addPaths(["a.txt"]);
+    const summary = stagedSummary();
+    expect(summary).toContain("a.txt");
+    expect(summary.length).toBeLessThan(1000);
   });
 
   it("commitWithMessage creates a commit and clears the staged diff", () => {

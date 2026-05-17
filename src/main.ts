@@ -14,7 +14,17 @@ import {
   hasProviderConfig,
   type ModelOption,
 } from "./modelOptions.js";
-import { isGitRepo, repoRoot, addPaths, stagedDiff, stagedFiles, commitWithMessage } from "./git.js";
+import {
+  isGitRepo,
+  repoRoot,
+  hasCommits,
+  addPaths,
+  hasStagedChanges,
+  stagedDiff,
+  stagedFiles,
+  stagedSummary,
+  commitWithMessage,
+} from "./git.js";
 import { generateMessage } from "./generate.js";
 import { detectReleasePlease, type ReleasePleaseContext } from "./releasePlease.js";
 import { editInEditor } from "./editor.js";
@@ -115,6 +125,12 @@ function renderFileSummary(rawNameStatus: string): string {
     return `  ${tag}  ${path}`;
   });
   return styled.join("\n");
+}
+
+function renderInitialSummary(rawSummary: string): string {
+  const lines = rawSummary.trim().split("\n").filter(Boolean);
+  if (lines.length === 0) return `  ${c.dim("(no stat summary)")}`;
+  return lines.map((line) => `  ${c.dim(line)}`).join("\n");
 }
 
 interface PreparedArgs {
@@ -342,16 +358,17 @@ export async function main(
     addPaths(positionals);
   }
 
-  const diff = stagedDiff();
-  if (!diff.trim()) {
+  if (!hasStagedChanges()) {
     stderr.write(
       `${c.yellow("nothing to commit")} ${c.dim("— stage files with `git add <path>` first, or run `gitai .` to stage everything")}\n`,
     );
     return 0;
   }
 
-  const files = stagedFiles();
-  const detectedReleasePlease = detectReleasePlease(root, files);
+  const initialCommit = !hasCommits();
+  const diff = initialCommit ? "" : stagedDiff();
+  const files = initialCommit ? stagedSummary() : stagedFiles();
+  const detectedReleasePlease = detectReleasePlease(root, initialCommit ? "" : files);
   const releasePlease: ReleasePleaseContext | undefined =
     forceReleasePlease && !detectedReleasePlease?.detected
       ? {
@@ -375,13 +392,17 @@ export async function main(
   const printChunk = (chunk: string) => stdout.write(c.dim(chunk));
 
   stdout.write(`\n${header(modelId)}\n\n`);
-  stdout.write(`${c.bold("Staged files")}\n${renderFileSummary(files)}\n\n`);
+  stdout.write(
+    initialCommit
+      ? `${c.bold("Initial commit summary")}\n${renderInitialSummary(files)}\n\n`
+      : `${c.bold("Staged files")}\n${renderFileSummary(files)}\n\n`,
+  );
   if (releasePleaseStatus) {
     stdout.write(`${releasePleaseStatus}\n\n`);
   }
   stdout.write(`${c.dim(`${sym.arrow} generating commit message...`)}\n\n`);
 
-  let message = await generateMessage({ modelId, diff, files, hint, releasePlease, onChunk: printChunk });
+  let message = await generateMessage({ modelId, diff, files, hint, releasePlease, initialCommit, onChunk: printChunk });
   stdout.write("\n");
 
   while (!values.yes) {
@@ -405,7 +426,7 @@ export async function main(
       }
       const label = choice === "instruct" ? "regenerating with instructions..." : "regenerating...";
       stdout.write(`\n${c.dim(`${sym.arrow} ${label}`)}\n\n`);
-      message = await generateMessage({ modelId, diff, files, hint, releasePlease, onChunk: printChunk });
+      message = await generateMessage({ modelId, diff, files, hint, releasePlease, initialCommit, onChunk: printChunk });
       stdout.write("\n");
       continue;
     }

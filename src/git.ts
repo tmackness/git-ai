@@ -47,12 +47,24 @@ export function repoRoot(): string {
   return r.stdout.trim();
 }
 
+export function hasCommits(): boolean {
+  const r = run(["rev-parse", "--verify", "HEAD"], { stdio: "ignore" });
+  return r.status === 0;
+}
+
 export function addPaths(paths: string[]): void {
   if (paths.length === 0) return;
   const r = run(["add", "--", ...paths], { stdio: "inherit" });
   if (r.status !== 0) {
     throw new GitError(`git add ${paths.join(" ")} failed`, r.status, r.stderr);
   }
+}
+
+export function hasStagedChanges(): boolean {
+  const r = run(["diff", "--staged", "--quiet", "--exit-code"], { stdio: "ignore" });
+  if (r.status === 0) return false;
+  if (r.status === 1) return true;
+  throw new GitError("git diff --staged --quiet failed", r.status, r.stderr);
 }
 
 export function stagedDiff(): string {
@@ -71,6 +83,14 @@ export function stagedFiles(): string {
       r.status,
       r.stderr,
     );
+  }
+  return r.stdout;
+}
+
+export function stagedSummary(): string {
+  const r = run(["diff", "--staged", "--stat=80,60,200"]);
+  if (r.status !== 0) {
+    throw new GitError("git diff --staged --stat failed", r.status, r.stderr);
   }
   return r.stdout;
 }

@@ -72,12 +72,19 @@ export interface GenerateOptions {
   files: string;
   hint?: string;
   releasePlease?: ReleasePleaseContext;
+  initialCommit?: boolean;
   onChunk?: (chunk: string) => void;
 }
 
 export async function generateMessage(opts: GenerateOptions): Promise<string> {
-  const { modelId, diff, files, hint, releasePlease, onChunk } = opts;
-  const prompt = buildUserPrompt(diff, files, hint, releasePlease);
+  const { modelId, diff, files, hint, releasePlease, initialCommit, onChunk } = opts;
+  const prompt = buildUserPrompt(
+    diff,
+    files,
+    hint,
+    releasePlease,
+    initialCommit ? "initial-summary" : "diff",
+  );
 
   const result = streamText({
     model: getModel(modelId),
