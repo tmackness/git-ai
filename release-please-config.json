@@ -3,7 +3,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "git-ai"
+      "package-name": "@tma10011/git-ai"
     }
   }
 }

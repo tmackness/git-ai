@@ -11,7 +11,7 @@ Instructions for AI coding agents working in this repo.
 3. lets you confirm, edit, or regenerate the draft,
 4. then commits via `git commit -F -`.
 
-It's a published npm package. Package name: `git-ai`. **Binary name: `gitai`** (no dash). They differ on purpose — keep that distinction whenever you touch `package.json` or docs.
+It's a published npm package. Package name: `@tma10011/git-ai`. **Binary name: `gitai`** (no dash). They differ on purpose — keep that distinction whenever you touch `package.json` or docs.
 
 ## Tech stack — pin this in mind
 
@@ -100,7 +100,7 @@ The package must work on macOS, Linux, **and Windows**. CI runs all three.
 - **Lazy provider instantiation.** `src/generate.ts` only constructs the model the user picked. Don't move the `createOpenAICompatible` calls to module scope — startup time would suffer for users who never touch those providers.
 - **Vitest with chdir.** `tests/git.test.ts` chdirs into a temp dir per test. Vitest runs tests within a file serially, so this is safe — but don't add parallel-within-file chdir tests in other files.
 - **Shebang preservation.** `tsc` preserves the `#!/usr/bin/env node` line at the top of `src/cli.ts`. Don't remove it. `postbuild` makes the output executable.
-- **Bin vs package name.** Bin is `gitai`, package is `git-ai`. Don't "fix" the discrepancy without asking.
+- **Bin vs package name.** Bin is `gitai`, package is `@tma10011/git-ai`. Don't "fix" the discrepancy without asking.
 
 ## How to test changes
 
@@ -131,6 +131,7 @@ One-time npm setup:
 
 1. Publish the package once manually if it does not exist on npm yet.
 2. Configure npm Trusted Publishing for GitHub Actions:
+   - package: `@tma10011/git-ai`
    - owner/repository: `tmackness/git-ai`
    - workflow filename: `publish.yml`
 3. Confirm `package.json` repository metadata exactly matches the GitHub repo.

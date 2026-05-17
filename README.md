@@ -6,7 +6,7 @@ AI-generated git commit messages from the command line. Drafts a Conventional Co
 
 ```sh
 # 1. install
-pnpm add -g git-ai     # or: npm i -g git-ai
+pnpm add -g @tma10011/git-ai     # or: npm i -g @tma10011/git-ai
 
 # 2. save a default model and API key
 gitai --setup
