@@ -3,12 +3,6 @@ name: Publish to npm
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "npm dist-tag (default: latest)"
-        required: false
-        default: "latest"
 
 jobs:
   publish:
@@ -61,4 +55,4 @@ jobs:
           fi
 
       - name: Publish
-        run: npm publish --access public --tag "${{ github.event.inputs.tag || 'latest' }}"
+        run: npm publish --access public

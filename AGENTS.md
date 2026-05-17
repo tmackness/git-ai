@@ -53,6 +53,7 @@ tests/
   *.test.ts     one file per src module; main.test.ts covers end-to-end CLI paths that don't hit network
 .github/workflows/
   ci.yml        matrix: {ubuntu, macos, windows} × {node 20, 22}
+  release-please.yml opens/updates the release PR on pushes to main based on Conventional Commits
   publish.yml   triggered by GitHub Release; verifies tag matches package.json version; publishes via npm Trusted Publishing (OIDC)
 ```
 
@@ -117,9 +118,14 @@ OPENAI_API_KEY=sk-... node /path/to/git-ai/dist/cli.js -y
 
 ## How to release
 
-1. Bump `version` in `package.json` on `main`.
-2. Push, then create a GitHub Release with tag `v<version>` (matching exactly — the publish workflow refuses to publish if `package.json` version and the tag disagree).
-3. The workflow runs typecheck + tests + build, then publishes with `npm publish` using GitHub Actions OIDC.
+Release versioning is handled by release-please.
+
+1. Merge normal Conventional Commit changes to `main` (`feat:`, `fix:`, `perf:`, etc.).
+2. `.github/workflows/release-please.yml` opens or updates a release PR that bumps `package.json`, updates `.release-please-manifest.json`, and creates/updates `CHANGELOG.md`.
+3. Merge the release PR when ready. release-please creates the matching GitHub Release and tag.
+4. `.github/workflows/publish.yml` runs from that GitHub Release and publishes with `npm publish` using GitHub Actions OIDC.
+
+Do not manually bump `package.json` or create release tags during normal releases unless intentionally bypassing release-please.
 
 One-time npm setup:
 
