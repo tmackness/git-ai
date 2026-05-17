@@ -4,7 +4,7 @@
   "description": "AI-generated git commit messages from the command line",
   "type": "module",
   "bin": {
-    "gitai": "./dist/cli.js"
+    "gitai": "dist/cli.js"
   },
   "main": "./dist/cli.js",
   "files": [

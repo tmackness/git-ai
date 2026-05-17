@@ -143,16 +143,6 @@ src/
 tests/          # vitest suites mirroring src/
 ```
 
-## Publishing
-
-Releases publish to npm automatically via [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
-
-1. Bump `version` in `package.json` on `main`.
-2. Tag and create a GitHub Release with tag `v<version>` (e.g. `v0.2.0`).
-3. The workflow runs typecheck + tests + build, then publishes.
-
-One-time setup: add an `NPM_TOKEN` secret in repo settings (Settings → Secrets and variables → Actions).
-
 ## License
 
 MIT — see [LICENSE](LICENSE).

@@ -53,7 +53,7 @@ tests/
   *.test.ts     one file per src module; main.test.ts covers end-to-end CLI paths that don't hit network
 .github/workflows/
   ci.yml        matrix: {ubuntu, macos, windows} × {node 20, 22}
-  publish.yml   triggered by GitHub Release; verifies tag matches package.json version; runs pnpm publish --provenance
+  publish.yml   triggered by GitHub Release; verifies tag matches package.json version; publishes via npm Trusted Publishing (OIDC)
 ```
 
 ## Behavior contract — read before changing CLI surface
@@ -119,6 +119,14 @@ OPENAI_API_KEY=sk-... node /path/to/git-ai/dist/cli.js -y
 
 1. Bump `version` in `package.json` on `main`.
 2. Push, then create a GitHub Release with tag `v<version>` (matching exactly — the publish workflow refuses to publish if `package.json` version and the tag disagree).
-3. The workflow runs typecheck + tests + build + publish with provenance.
+3. The workflow runs typecheck + tests + build, then publishes with `npm publish` using GitHub Actions OIDC.
 
-Requires the `NPM_TOKEN` secret in repo settings.
+One-time npm setup:
+
+1. Publish the package once manually if it does not exist on npm yet.
+2. Configure npm Trusted Publishing for GitHub Actions:
+   - owner/repository: `tmackness/git-ai`
+   - workflow filename: `publish.yml`
+3. Confirm `package.json` repository metadata exactly matches the GitHub repo.
+
+Do not add an `NPM_TOKEN` secret for publishing. Trusted Publishing grants a short-lived publish credential only to the trusted workflow and produces provenance automatically for public packages from public repos.
