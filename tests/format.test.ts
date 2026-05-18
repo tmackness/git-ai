@@ -53,7 +53,13 @@ describe("buildUserPrompt", () => {
   });
 
   it("uses a bounded summary prompt for initial commits", () => {
-    const out = buildUserPrompt("", " package.json | 20 +++++", undefined, undefined, "initial-summary");
+    const out = buildUserPrompt(
+      "",
+      " package.json | 20 +++++",
+      undefined,
+      undefined,
+      "initial-summary",
+    );
     expect(out).toContain("Initial commit");
     expect(out).toContain("package.json");
     expect(out).toContain("chore: initial commit");
@@ -72,19 +78,14 @@ describe("buildUserPrompt", () => {
   });
 
   it("adds release-please guidance when provided", () => {
-    const out = buildUserPrompt(
-      "d",
-      "M  packages/cli/src/main.ts",
-      undefined,
-      {
-        detected: true,
-        sources: ["release-please-config.json"],
-        packagePaths: ["packages/cli"],
-        releaseTypes: ["node"],
-        changelogTypes: ["feat", "fix"],
-        affectedPackages: ["cli"],
-      },
-    );
+    const out = buildUserPrompt("d", "M  packages/cli/src/main.ts", undefined, {
+      detected: true,
+      sources: ["release-please-config.json"],
+      packagePaths: ["packages/cli"],
+      releaseTypes: ["node"],
+      changelogTypes: ["feat", "fix"],
+      affectedPackages: ["cli"],
+    });
 
     expect(out).toContain("This repository uses release-please.");
     expect(out).toContain("Affected release package(s): cli");

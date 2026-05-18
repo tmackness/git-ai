@@ -10,7 +10,9 @@ import {
 describe("model options", () => {
   it("includes direct and Cloudflare model choices", () => {
     expect(directModelOptions().map((option) => option.modelId)).toContain("openai:gpt-4o-mini");
-    expect(cloudflareModelOptions().map((option) => option.modelId)).toContain("cloudflare:openai/gpt-4o-mini");
+    expect(cloudflareModelOptions().map((option) => option.modelId)).toContain(
+      "cloudflare:openai/gpt-4o-mini",
+    );
     expect(allModelOptions().length).toBeGreaterThan(directModelOptions().length);
   });
 
@@ -35,16 +37,12 @@ describe("model options", () => {
 
   it("treats saved API keys as configured", () => {
     const option = directModelOptions().find((item) => item.provider === "anthropic")!;
-    expect(
-      hasProviderConfig(option, {}, { apiKeys: { ANTHROPIC_API_KEY: "key" } }),
-    ).toBe(true);
+    expect(hasProviderConfig(option, {}, { apiKeys: { ANTHROPIC_API_KEY: "key" } })).toBe(true);
   });
 
   it("requires Cloudflare token and account id", () => {
     const option = cloudflareModelOptions()[0]!;
-    expect(
-      hasProviderConfig(option, { CLOUDFLARE_AI_GATEWAY_API_KEY: "key" }, {}),
-    ).toBe(false);
+    expect(hasProviderConfig(option, { CLOUDFLARE_AI_GATEWAY_API_KEY: "key" }, {})).toBe(false);
     expect(
       hasProviderConfig(
         option,

@@ -11,12 +11,15 @@ export interface ReleasePleaseContext {
 }
 
 interface ReleasePleaseConfig {
-  packages?: Record<string, {
-    "release-type"?: string;
-    "package-name"?: string;
-    component?: string;
-    "changelog-types"?: Array<{ type?: string; section?: string; hidden?: boolean }>;
-  }>;
+  packages?: Record<
+    string,
+    {
+      "release-type"?: string;
+      "package-name"?: string;
+      component?: string;
+      "changelog-types"?: Array<{ type?: string; section?: string; hidden?: boolean }>;
+    }
+  >;
   "release-type"?: string;
   "package-name"?: string;
   component?: string;
@@ -68,10 +71,7 @@ function changedFilePaths(nameStatus: string): string[] {
     .filter(Boolean);
 }
 
-function affectedPackagePaths(
-  packagePaths: readonly string[],
-  stagedNameStatus: string,
-): string[] {
+function affectedPackagePaths(packagePaths: readonly string[], stagedNameStatus: string): string[] {
   const files = changedFilePaths(stagedNameStatus);
   return packagePaths.filter((packagePath) => {
     if (packagePath === ".") return files.length > 0;
@@ -113,8 +113,9 @@ export function detectReleasePlease(
     .map((pkg) => pkg["release-type"])
     .filter((value): value is string => Boolean(value));
   const rootChangelogTypes = config?.["changelog-types"] ?? [];
-  const packageChangelogTypes = Object.values(config?.packages ?? {})
-    .flatMap((pkg) => pkg["changelog-types"] ?? []);
+  const packageChangelogTypes = Object.values(config?.packages ?? {}).flatMap(
+    (pkg) => pkg["changelog-types"] ?? [],
+  );
   const affectedPaths = affectedPackagePaths(packagePaths, stagedNameStatus);
 
   return {
@@ -131,15 +132,11 @@ export function detectReleasePlease(
         .filter((entry) => entry.hidden !== true)
         .map((entry) => entry.type ?? ""),
     ),
-    affectedPackages: unique(
-      affectedPaths.map((path) => packageLabel(path, config ?? {})),
-    ),
+    affectedPackages: unique(affectedPaths.map((path) => packageLabel(path, config ?? {}))),
   };
 }
 
-export function renderReleasePleasePrompt(
-  context: ReleasePleaseContext,
-): string {
+export function renderReleasePleasePrompt(context: ReleasePleaseContext): string {
   const lines = [
     "This repository uses release-please.",
     "",
@@ -154,10 +151,7 @@ export function renderReleasePleasePrompt(
   ];
 
   if (context.packagePaths.length > 0) {
-    lines.push(
-      "",
-      `Configured release package paths: ${context.packagePaths.join(", ")}`,
-    );
+    lines.push("", `Configured release package paths: ${context.packagePaths.join(", ")}`);
   }
   if (context.affectedPackages.length > 0) {
     lines.push(

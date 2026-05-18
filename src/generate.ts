@@ -53,7 +53,9 @@ function getModel(modelId: string): LanguageModelV1 {
     }
     default: {
       if (!spec.baseURL) {
-        throw new Error(`provider "${provider}" is OpenAI-compatible but has no baseURL configured`);
+        throw new Error(
+          `provider "${provider}" is OpenAI-compatible but has no baseURL configured`,
+        );
       }
       const apiKey = process.env[spec.envVar];
       const compat = createOpenAICompatible({

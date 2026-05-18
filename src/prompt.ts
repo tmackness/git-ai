@@ -1,8 +1,5 @@
 import { createInterface } from "node:readline/promises";
-import {
-  createInterface as createInterfaceSync,
-  emitKeypressEvents,
-} from "node:readline";
+import { createInterface as createInterfaceSync, emitKeypressEvents } from "node:readline";
 import { c } from "./colors.js";
 
 export type Choice = "yes" | "no" | "edit" | "regen" | "instruct" | "unknown";
@@ -38,11 +35,7 @@ export async function selectFromList<T>(
   items: T[],
   render: (item: T, idx: number) => string,
 ): Promise<T | null> {
-  return selectFromSections(
-    prompt,
-    [{ label: undefined, items }],
-    render,
-  );
+  return selectFromSections(prompt, [{ label: undefined, items }], render);
 }
 
 export interface SelectSection<T> {
@@ -68,9 +61,7 @@ export async function selectFromSections<T>(
   const stdin = process.stdin;
   const stdout = process.stdout;
   const isTTY =
-    Boolean(stdin.isTTY) &&
-    Boolean(stdout.isTTY) &&
-    typeof stdin.setRawMode === "function";
+    Boolean(stdin.isTTY) && Boolean(stdout.isTTY) && typeof stdin.setRawMode === "function";
 
   if (isTTY) {
     return selectFromSectionsTTY(prompt, sections, render);
@@ -121,10 +112,7 @@ async function selectFromSectionsTTY<T>(
   let selected = 0;
   let renderedRows = 0;
   const wasRaw = stdin.isRaw;
-  const visibleLimit = Math.max(
-    6,
-    Math.min(12, (stdout.rows ?? 24) - 6),
-  );
+  const visibleLimit = Math.max(6, Math.min(12, (stdout.rows ?? 24) - 6));
 
   const visibleRange = () => {
     const half = Math.floor(visibleLimit / 2);

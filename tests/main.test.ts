@@ -75,44 +75,50 @@ describe("main (paths that don't hit the network or git)", () => {
     const code = await main(["--providers"], { stdout: s.stdout, stderr: s.stderr, env: s.env });
     expect(code).toBe(0);
     const out = s.getStdout();
-    for (const key of ["openai", "anthropic", "google", "groq", "deepseek", "kimi", "qwen", "ollama", "openrouter", "cloudflare"]) {
+    for (const key of [
+      "openai",
+      "anthropic",
+      "google",
+      "groq",
+      "deepseek",
+      "kimi",
+      "qwen",
+      "ollama",
+      "openrouter",
+      "cloudflare",
+    ]) {
       expect(out).toContain(key);
     }
   });
 
   it("exits non-zero with helpful message on unknown provider", async () => {
     const s = captureStreams();
-    const code = await main(
-      ["-m", "nope:foo"],
-      { stdout: s.stdout, stderr: s.stderr, env: s.env },
-    );
+    const code = await main(["-m", "nope:foo"], { stdout: s.stdout, stderr: s.stderr, env: s.env });
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/unknown provider/);
   });
 
   it("exits non-zero when the required API key is missing", async () => {
     const s = captureStreams();
-    const code = await main(
-      ["-m", "openai:gpt-4o-mini"],
-      { stdout: s.stdout, stderr: s.stderr, env: s.env },
-    );
+    const code = await main(["-m", "openai:gpt-4o-mini"], {
+      stdout: s.stdout,
+      stderr: s.stderr,
+      env: s.env,
+    });
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/OPENAI_API_KEY is not set/);
   });
 
   it("uses GITAI_MODEL env var when -m is not provided", async () => {
     const s = captureStreams();
-    const code = await main(
-      [],
-      {
-        stdout: s.stdout,
-        stderr: s.stderr,
-        env: {
-          ...s.env,
-          GITAI_MODEL: "anthropic:claude-3-5-haiku-latest",
-        },
+    const code = await main([], {
+      stdout: s.stdout,
+      stderr: s.stderr,
+      env: {
+        ...s.env,
+        GITAI_MODEL: "anthropic:claude-3-5-haiku-latest",
       },
-    );
+    });
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/ANTHROPIC_API_KEY is not set/);
   });
@@ -121,16 +127,14 @@ describe("main (paths that don't hit the network or git)", () => {
     const tmp = mkdtempSync(join(tmpdir(), "gitai-main-"));
     const config = join(tmp, "config.json");
     const s = captureStreams();
-    writeFileSync(
-      config,
-      JSON.stringify({ defaultModel: "groq:llama-3.3-70b-versatile" }),
-    );
+    writeFileSync(config, JSON.stringify({ defaultModel: "groq:llama-3.3-70b-versatile" }));
 
     try {
-      const code = await main(
-        [],
-        { stdout: s.stdout, stderr: s.stderr, env: { GITAI_CONFIG: config } },
-      );
+      const code = await main([], {
+        stdout: s.stdout,
+        stderr: s.stderr,
+        env: { GITAI_CONFIG: config },
+      });
       expect(code).toBe(1);
       expect(s.getStderr()).toMatch(/GROQ_API_KEY is not set/);
     } finally {
@@ -156,10 +160,11 @@ describe("main (paths that don't hit the network or git)", () => {
 
     try {
       process.chdir(tmp);
-      const code = await main(
-        [],
-        { stdout: s.stdout, stderr: s.stderr, env: { GITAI_CONFIG: config } },
-      );
+      const code = await main([], {
+        stdout: s.stdout,
+        stderr: s.stderr,
+        env: { GITAI_CONFIG: config },
+      });
       expect(code).toBe(1);
       expect(s.getStderr()).toMatch(/not inside a git repository/);
     } finally {
@@ -171,17 +176,14 @@ describe("main (paths that don't hit the network or git)", () => {
 
   it("requires Cloudflare account id for Cloudflare AI Gateway models", async () => {
     const s = captureStreams();
-    const code = await main(
-      ["-m", "cloudflare:openai/gpt-4o-mini"],
-      {
-        stdout: s.stdout,
-        stderr: s.stderr,
-        env: {
-          ...s.env,
-          CLOUDFLARE_AI_GATEWAY_API_KEY: "cf-token",
-        },
+    const code = await main(["-m", "cloudflare:openai/gpt-4o-mini"], {
+      stdout: s.stdout,
+      stderr: s.stderr,
+      env: {
+        ...s.env,
+        CLOUDFLARE_AI_GATEWAY_API_KEY: "cf-token",
       },
-    );
+    });
 
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/CLOUDFLARE_ACCOUNT_ID is not set/);
@@ -209,10 +211,11 @@ describe("main (paths that don't hit the network or git)", () => {
 
     try {
       process.chdir(tmp);
-      const code = await main(
-        [],
-        { stdout: s.stdout, stderr: s.stderr, env: { GITAI_CONFIG: config } },
-      );
+      const code = await main([], {
+        stdout: s.stdout,
+        stderr: s.stderr,
+        env: { GITAI_CONFIG: config },
+      });
       expect(code).toBe(1);
       expect(s.getStderr()).toMatch(/not inside a git repository/);
     } finally {
@@ -226,20 +229,18 @@ describe("main (paths that don't hit the network or git)", () => {
 
   it("rejects unknown flags via parseArgs", async () => {
     const s = captureStreams();
-    const code = await main(
-      ["--bogus"],
-      { stdout: s.stdout, stderr: s.stderr, env: s.env },
-    );
+    const code = await main(["--bogus"], { stdout: s.stdout, stderr: s.stderr, env: s.env });
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/gitai:/);
   });
 
   it("rejects conflicting release-please flags", async () => {
     const s = captureStreams();
-    const code = await main(
-      ["--release-please", "--no-release-please"],
-      { stdout: s.stdout, stderr: s.stderr, env: s.env },
-    );
+    const code = await main(["--release-please", "--no-release-please"], {
+      stdout: s.stdout,
+      stderr: s.stderr,
+      env: s.env,
+    });
 
     expect(code).toBe(1);
     expect(s.getStderr()).toMatch(/either --release-please or --no-release-please/);

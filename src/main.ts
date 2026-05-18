@@ -2,18 +2,9 @@ import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import {
-  DEFAULT_MODEL,
-  listProviders,
-  validateModel,
-  type ValidatedModel,
-} from "./config.js";
+import { DEFAULT_MODEL, listProviders, validateModel, type ValidatedModel } from "./config.js";
 import { loadConfig } from "./configFile.js";
-import {
-  allModelOptions,
-  hasProviderConfig,
-  type ModelOption,
-} from "./modelOptions.js";
+import { allModelOptions, hasProviderConfig, type ModelOption } from "./modelOptions.js";
 import {
   isGitRepo,
   repoRoot,
@@ -95,9 +86,9 @@ const defaultStreams = (): Streams => ({
 function readPackageVersion(): string {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const pkg = JSON.parse(
-      readFileSync(join(here, "..", "package.json"), "utf8"),
-    ) as { version?: string };
+    const pkg = JSON.parse(readFileSync(join(here, "..", "package.json"), "utf8")) as {
+      version?: string;
+    };
     return pkg.version ?? "0.0.0";
   } catch {
     return "0.0.0";
@@ -116,12 +107,15 @@ function renderFileSummary(rawNameStatus: string): string {
     if (!m) return `  ${c.dim(line)}`;
     const status = m[1] ?? "";
     const path = m[2] ?? "";
-    const tag =
-      status.startsWith("A") ? c.green(status) :
-      status.startsWith("D") ? c.red(status) :
-      status.startsWith("M") ? c.yellow(status) :
-      status.startsWith("R") ? c.magenta(status) :
-      c.cyan(status);
+    const tag = status.startsWith("A")
+      ? c.green(status)
+      : status.startsWith("D")
+        ? c.red(status)
+        : status.startsWith("M")
+          ? c.yellow(status)
+          : status.startsWith("R")
+            ? c.magenta(status)
+            : c.cyan(status);
     return `  ${tag}  ${path}`;
   });
   return styled.join("\n");
@@ -155,8 +149,7 @@ export function prepareArgs(argv: string[]): PreparedArgs {
 }
 
 function renderModelOption(option: ModelOption): string {
-  const keyHint =
-    option.spec.apiKeyRequired === false ? "no API key" : option.spec.envVar;
+  const keyHint = option.spec.apiKeyRequired === false ? "no API key" : option.spec.envVar;
   return `${option.modelId.padEnd(58)} ${c.dim(option.spec.label)} ${c.dim(`(${keyHint})`)}`;
 }
 
@@ -172,7 +165,11 @@ function commitActions(): CommitActionOption[] {
   return [
     { action: "commit", label: "Commit", description: "use this message" },
     { action: "edit", label: "Edit", description: "open the message in your editor" },
-    { action: "try-again", label: "Try Again", description: "regenerate without extra instructions" },
+    {
+      action: "try-again",
+      label: "Try Again",
+      description: "regenerate without extra instructions",
+    },
     { action: "instruct", label: "Instruct", description: "add guidance and regenerate" },
     { action: "abort", label: "Abort", description: "do not commit" },
   ];
@@ -189,9 +186,8 @@ function renderReleasePleaseStatus(
   disabled: boolean,
 ): string | null {
   if (enabled?.detected) {
-    const sourceText = enabled.sources.length > 0
-      ? c.dim(` ${sym.bullet} ${enabled.sources.join(", ")}`)
-      : "";
+    const sourceText =
+      enabled.sources.length > 0 ? c.dim(` ${sym.bullet} ${enabled.sources.join(", ")}`) : "";
     const mode = force ? c.cyan("forced") : c.green("enabled");
     return `${c.magenta(sym.sparkle)} ${c.bold("release-please")} ${mode}${sourceText}`;
   }
@@ -208,11 +204,7 @@ function renderReleasePleaseStatus(
 }
 
 async function chooseCommitAction(): Promise<CommitAction> {
-  const selected = await selectFromList(
-    "Choose next action:",
-    commitActions(),
-    renderCommitAction,
-  );
+  const selected = await selectFromList("Choose next action:", commitActions(), renderCommitAction);
   return selected?.action ?? "abort";
 }
 
@@ -221,22 +213,14 @@ async function chooseModel(
   savedConfig: ReturnType<typeof loadConfig>,
 ): Promise<string | null> {
   const models = allModelOptions();
-  const configured = models.filter((option) =>
-    hasProviderConfig(option, env, savedConfig),
-  );
-  const remaining = models.filter((option) =>
-    !hasProviderConfig(option, env, savedConfig),
-  );
+  const configured = models.filter((option) => hasProviderConfig(option, env, savedConfig));
+  const remaining = models.filter((option) => !hasProviderConfig(option, env, savedConfig));
   const sections = [
     configured.length > 0 ? { label: "Configured", items: configured } : undefined,
     remaining.length > 0 ? { label: "Not configured", items: remaining } : undefined,
   ].filter((section): section is { label: string; items: ModelOption[] } => Boolean(section));
 
-  const selected = await selectFromSections(
-    "Choose a model:",
-    sections,
-    renderModelOption,
-  );
+  const selected = await selectFromSections("Choose a model:", sections, renderModelOption);
   return selected?.modelId ?? null;
 }
 
@@ -285,7 +269,9 @@ export async function main(
   }
 
   if (values.providers) {
-    stdout.write(`${c.bold("Bundled providers")} ${c.dim("(use as `<provider>:<model>` with -m)")}\n\n`);
+    stdout.write(
+      `${c.bold("Bundled providers")} ${c.dim("(use as `<provider>:<model>` with -m)")}\n\n`,
+    );
     stdout.write(listProviders() + "\n");
     return 0;
   }
@@ -380,7 +366,9 @@ export async function main(
           affectedPackages: [],
         }
       : detectedReleasePlease?.detected
-        ? disableReleasePlease ? undefined : detectedReleasePlease
+        ? disableReleasePlease
+          ? undefined
+          : detectedReleasePlease
         : undefined;
   const releasePleaseStatus = renderReleasePleaseStatus(
     detectedReleasePlease,
@@ -402,7 +390,15 @@ export async function main(
   }
   stdout.write(`${c.dim(`${sym.arrow} generating commit message...`)}\n\n`);
 
-  let message = await generateMessage({ modelId, diff, files, hint, releasePlease, initialCommit, onChunk: printChunk });
+  let message = await generateMessage({
+    modelId,
+    diff,
+    files,
+    hint,
+    releasePlease,
+    initialCommit,
+    onChunk: printChunk,
+  });
   stdout.write("\n");
 
   while (!values.yes) {
@@ -426,7 +422,15 @@ export async function main(
       }
       const label = choice === "instruct" ? "regenerating with instructions..." : "regenerating...";
       stdout.write(`\n${c.dim(`${sym.arrow} ${label}`)}\n\n`);
-      message = await generateMessage({ modelId, diff, files, hint, releasePlease, initialCommit, onChunk: printChunk });
+      message = await generateMessage({
+        modelId,
+        diff,
+        files,
+        hint,
+        releasePlease,
+        initialCommit,
+        onChunk: printChunk,
+      });
       stdout.write("\n");
       continue;
     }

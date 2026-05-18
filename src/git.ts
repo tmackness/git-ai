@@ -21,11 +21,7 @@ function run(
     ...options,
   });
   if (result.error) {
-    throw new GitError(
-      `failed to spawn git: ${result.error.message}`,
-      null,
-      "",
-    );
+    throw new GitError(`failed to spawn git: ${result.error.message}`, null, "");
   }
   return {
     stdout: typeof result.stdout === "string" ? result.stdout : "",
@@ -78,11 +74,7 @@ export function stagedDiff(): string {
 export function stagedFiles(): string {
   const r = run(["diff", "--staged", "--name-status"]);
   if (r.status !== 0) {
-    throw new GitError(
-      "git diff --staged --name-status failed",
-      r.status,
-      r.stderr,
-    );
+    throw new GitError("git diff --staged --name-status failed", r.status, r.stderr);
   }
   return r.stdout;
 }

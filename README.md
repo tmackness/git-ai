@@ -85,21 +85,21 @@ The CLI prints whether release-please guidance is enabled, forced, or disabled b
 
 The `--model` flag is `<provider>:<model>`. Run `gitai --setup` to choose a default model and save its API key, or set the matching env var yourself. Run `gitai --providers` to see this list any time.
 
-| Provider | Env var | Example |
-| --- | --- | --- |
-| `openai` | `OPENAI_API_KEY` | `openai:gpt-4o-mini` *(default)* |
-| `anthropic` | `ANTHROPIC_API_KEY` | `anthropic:claude-3-5-haiku-latest` |
-| `google` | `GOOGLE_GENERATIVE_AI_API_KEY` | `google:gemini-1.5-flash` |
-| `mistral` | `MISTRAL_API_KEY` | `mistral:mistral-small-latest` |
-| `groq` | `GROQ_API_KEY` | `groq:llama-3.3-70b-versatile` |
-| `xai` | `XAI_API_KEY` | `xai:grok-2-latest` |
-| `deepseek` | `DEEPSEEK_API_KEY` | `deepseek:deepseek-chat` |
-| `kimi` *(Moonshot)* | `MOONSHOT_API_KEY` | `kimi:moonshot-v1-8k` |
-| `qwen` *(DashScope)* | `DASHSCOPE_API_KEY` | `qwen:qwen-plus` |
-| `minimax` | `MINIMAX_API_KEY` | `minimax:MiniMax-Text-01` |
-| `openrouter` | `OPENROUTER_API_KEY` | `openrouter:anthropic/claude-3.5-sonnet` |
-| `cloudflare` *(AI Gateway)* | `CLOUDFLARE_AI_GATEWAY_API_KEY` | `cloudflare:openai/gpt-4o-mini` |
-| `ollama` *(local)* | *(none)* | `ollama:llama3.2` |
+| Provider                    | Env var                         | Example                                  |
+| --------------------------- | ------------------------------- | ---------------------------------------- |
+| `openai`                    | `OPENAI_API_KEY`                | `openai:gpt-4o-mini` _(default)_         |
+| `anthropic`                 | `ANTHROPIC_API_KEY`             | `anthropic:claude-3-5-haiku-latest`      |
+| `google`                    | `GOOGLE_GENERATIVE_AI_API_KEY`  | `google:gemini-1.5-flash`                |
+| `mistral`                   | `MISTRAL_API_KEY`               | `mistral:mistral-small-latest`           |
+| `groq`                      | `GROQ_API_KEY`                  | `groq:llama-3.3-70b-versatile`           |
+| `xai`                       | `XAI_API_KEY`                   | `xai:grok-2-latest`                      |
+| `deepseek`                  | `DEEPSEEK_API_KEY`              | `deepseek:deepseek-chat`                 |
+| `kimi` _(Moonshot)_         | `MOONSHOT_API_KEY`              | `kimi:moonshot-v1-8k`                    |
+| `qwen` _(DashScope)_        | `DASHSCOPE_API_KEY`             | `qwen:qwen-plus`                         |
+| `minimax`                   | `MINIMAX_API_KEY`               | `minimax:MiniMax-Text-01`                |
+| `openrouter`                | `OPENROUTER_API_KEY`            | `openrouter:anthropic/claude-3.5-sonnet` |
+| `cloudflare` _(AI Gateway)_ | `CLOUDFLARE_AI_GATEWAY_API_KEY` | `cloudflare:openai/gpt-4o-mini`          |
+| `ollama` _(local)_          | _(none)_                        | `ollama:llama3.2`                        |
 
 Set a different default without typing `-m` every time:
 
@@ -128,16 +128,16 @@ Cloudflare AI Gateway uses model ids like `cloudflare:<provider>/<model>`, for e
 
 ## Configuration
 
-| Variable | Purpose |
-| --- | --- |
-| `GITAI_CONFIG` | path to the saved `gitai --setup` JSON config |
-| `GITAI_MODEL` | default model id (overridden by `-m`) |
-| `<PROVIDER>_API_KEY` | api key for whichever provider you use (see `--providers`) |
-| `CLOUDFLARE_ACCOUNT_ID` | account id for `cloudflare:*` models |
-| `CLOUDFLARE_AI_GATEWAY_ID` | gateway id for `cloudflare:*` models (default: `default`) |
-| `CLOUDFLARE_AI_GATEWAY_API_KEY` | Cloudflare AI Gateway token for `cloudflare:*` models |
-| `GIT_EDITOR` / `VISUAL` / `EDITOR` | editor for the `[e]dit` option (precedence in that order) |
-| `NO_COLOR` | set to disable all color output |
+| Variable                           | Purpose                                                    |
+| ---------------------------------- | ---------------------------------------------------------- |
+| `GITAI_CONFIG`                     | path to the saved `gitai --setup` JSON config              |
+| `GITAI_MODEL`                      | default model id (overridden by `-m`)                      |
+| `<PROVIDER>_API_KEY`               | api key for whichever provider you use (see `--providers`) |
+| `CLOUDFLARE_ACCOUNT_ID`            | account id for `cloudflare:*` models                       |
+| `CLOUDFLARE_AI_GATEWAY_ID`         | gateway id for `cloudflare:*` models (default: `default`)  |
+| `CLOUDFLARE_AI_GATEWAY_API_KEY`    | Cloudflare AI Gateway token for `cloudflare:*` models      |
+| `GIT_EDITOR` / `VISUAL` / `EDITOR` | editor for the `[e]dit` option (precedence in that order)  |
+| `NO_COLOR`                         | set to disable all color output                            |
 
 ## Development
 

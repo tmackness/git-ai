@@ -40,8 +40,7 @@ describe("runSetupWizard", () => {
         stderr: streams.stderr,
         env: { GITAI_CONFIG: config },
         prompts: {
-          selectMode: async (options) =>
-            options.find((option) => option.mode === "direct") ?? null,
+          selectMode: async (options) => options.find((option) => option.mode === "direct") ?? null,
           selectModel: async (options) =>
             options.find((option) => option.provider === "anthropic") ?? null,
           readText: async () => {
@@ -76,8 +75,7 @@ describe("runSetupWizard", () => {
         stderr: streams.stderr,
         env: { GITAI_CONFIG: config },
         prompts: {
-          selectMode: async (options) =>
-            options.find((option) => option.mode === "direct") ?? null,
+          selectMode: async (options) => options.find((option) => option.mode === "direct") ?? null,
           selectModel: async (options) =>
             options.find((option) => option.provider === "ollama") ?? null,
           readText: async () => {
@@ -107,8 +105,7 @@ describe("runSetupWizard", () => {
       stderr: streams.stderr,
       env: {},
       prompts: {
-        selectMode: async (options) =>
-          options.find((option) => option.mode === "direct") ?? null,
+        selectMode: async (options) => options.find((option) => option.mode === "direct") ?? null,
         selectModel: async (options) =>
           options.find((option) => option.provider === "openai") ?? null,
         readText: async () => {

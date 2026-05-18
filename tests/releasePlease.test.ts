@@ -2,10 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  detectReleasePlease,
-  renderReleasePleasePrompt,
-} from "../src/releasePlease.js";
+import { detectReleasePlease, renderReleasePleasePrompt } from "../src/releasePlease.js";
 
 const temps: string[] = [];
 
@@ -46,10 +43,7 @@ describe("detectReleasePlease", () => {
       }),
     );
 
-    const context = detectReleasePlease(
-      repo,
-      "M\tpackages/cli/src/main.ts\nM\tREADME.md\n",
-    );
+    const context = detectReleasePlease(repo, "M\tpackages/cli/src/main.ts\nM\tREADME.md\n");
 
     expect(context.detected).toBe(true);
     expect(context.sources).toEqual([

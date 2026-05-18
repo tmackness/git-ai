@@ -1,10 +1,6 @@
 import { validateModel } from "./config.js";
 import { loadConfig, mergeConfig, saveConfig } from "./configFile.js";
-import {
-  cloudflareModelOptions,
-  directModelOptions,
-  type ModelOption,
-} from "./modelOptions.js";
+import { cloudflareModelOptions, directModelOptions, type ModelOption } from "./modelOptions.js";
 import { ask, readSecret, selectFromList } from "./prompt.js";
 import { c, sym } from "./colors.js";
 
@@ -47,8 +43,7 @@ function setupModes(): SetupModeOption[] {
 }
 
 function renderModelOption(option: ModelOption): string {
-  const keyHint =
-    option.spec.apiKeyRequired === false ? "no API key" : option.spec.envVar;
+  const keyHint = option.spec.apiKeyRequired === false ? "no API key" : option.spec.envVar;
   return `${option.modelId.padEnd(44)} ${c.dim(option.spec.label)} ${c.dim(`(${keyHint})`)}`;
 }
 
@@ -145,9 +140,7 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
 
   if (selected.spec.apiKeyRequired !== false) {
     const existingKey = env[selected.spec.envVar];
-    const key = (
-      existingKey ?? (await prompts.readSecret(`${selected.spec.envVar}: `))
-    ).trim();
+    const key = (existingKey ?? (await prompts.readSecret(`${selected.spec.envVar}: `))).trim();
     if (!key) {
       stderr.write(`${c.red(c.bold("gitai:"))} API key cannot be empty\n`);
       return 1;
@@ -155,11 +148,7 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
     overlay.apiKeys[selected.spec.envVar] = key;
   }
 
-  const saved = saveConfig(
-    mergeConfig(loadConfig(env, platform), overlay),
-    env,
-    platform,
-  );
+  const saved = saveConfig(mergeConfig(loadConfig(env, platform), overlay), env, platform);
   stdout.write(`\n${c.green(sym.check)} saved ${c.bold(selected.modelId)} to ${saved}\n`);
   return 0;
 }

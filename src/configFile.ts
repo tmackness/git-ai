@@ -1,10 +1,4 @@
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -52,9 +46,7 @@ export function loadConfig(
       env:
         parsed.env && typeof parsed.env === "object"
           ? Object.fromEntries(
-              Object.entries(parsed.env).filter(
-                ([, v]) => typeof v === "string" && v.length > 0,
-              ),
+              Object.entries(parsed.env).filter(([, v]) => typeof v === "string" && v.length > 0),
             )
           : undefined,
     };
@@ -82,7 +74,7 @@ export function saveConfig(
 export function mergeConfig(base: GitaiConfig, overlay: GitaiConfig): GitaiConfig {
   return {
     defaultModel: overlay.defaultModel ?? base.defaultModel,
-    apiKeys: { ...(base.apiKeys ?? {}), ...(overlay.apiKeys ?? {}) },
-    env: { ...(base.env ?? {}), ...(overlay.env ?? {}) },
+    apiKeys: { ...base.apiKeys, ...overlay.apiKeys },
+    env: { ...base.env, ...overlay.env },
   };
 }

@@ -7,7 +7,7 @@ Instructions for AI coding agents working in this repo.
 `gitai` is a small CLI that:
 
 1. optionally stages the paths you name on the command line (`gitai .`, `gitai src/foo.ts`),
-2. asks an LLM to write a Conventional Commit message from the *already staged* diff,
+2. asks an LLM to write a Conventional Commit message from the _already staged_ diff,
 3. lets you confirm, edit, or regenerate the draft,
 4. then commits via `git commit -F -`.
 
@@ -59,9 +59,9 @@ tests/
 
 ## Behavior contract — read before changing CLI surface
 
-- **`gitai` (no args)** commits whatever is already staged. If nothing is staged, prints a friendly hint and exits 0 — *not* an error.
+- **`gitai` (no args)** commits whatever is already staged. If nothing is staged, prints a friendly hint and exits 0 — _not_ an error.
 - **`gitai <path>...`** runs `git add -- <path>...` first, then commits. The `--` separator is mandatory in our git wrapper so paths starting with `-` don't get parsed as flags.
-- **There is no `--no-add` flag** anymore. The user *always* controls staging. This is a deliberate design choice — the original Bun implementation auto-staged everything and the redesign explicitly dropped that.
+- **There is no `--no-add` flag** anymore. The user _always_ controls staging. This is a deliberate design choice — the original Bun implementation auto-staged everything and the redesign explicitly dropped that.
 - **`-m`** beats **`GITAI_MODEL`** beats **`DEFAULT_MODEL`**. Don't add a config file unless asked.
 
 ## Adding a new provider
@@ -70,7 +70,7 @@ tests/
    - Add the import + `case` in the switch in `src/generate.ts`.
    - Add the entry to `PROVIDERS` in `src/config.ts` (no `baseURL`).
 2. If it's OpenAI-compatible (custom baseURL, no native SDK):
-   - Add the entry to `PROVIDERS` in `src/config.ts` *with* a `baseURL`. No code change in `generate.ts` needed — the `default:` branch handles it via `createOpenAICompatible`.
+   - Add the entry to `PROVIDERS` in `src/config.ts` _with_ a `baseURL`. No code change in `generate.ts` needed — the `default:` branch handles it via `createOpenAICompatible`.
 3. If it doesn't need an API key (like Ollama): set `apiKeyRequired: false`.
 4. Add a row to the README provider table.
 5. Add a case to the `it.each(...)` test in `tests/config.test.ts`.

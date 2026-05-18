@@ -31,7 +31,9 @@ describe("providerOf", () => {
 describe("modelNameOf", () => {
   it("returns everything after the first colon", () => {
     expect(modelNameOf("openai:gpt-4o-mini")).toBe("gpt-4o-mini");
-    expect(modelNameOf("openrouter:anthropic/claude-3.5-sonnet")).toBe("anthropic/claude-3.5-sonnet");
+    expect(modelNameOf("openrouter:anthropic/claude-3.5-sonnet")).toBe(
+      "anthropic/claude-3.5-sonnet",
+    );
   });
 
   it("returns empty string when there is no model part", () => {

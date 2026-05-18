@@ -139,9 +139,7 @@ export function validateModel(modelId: string): ValidatedModel {
   }
   const spec = PROVIDERS[provider];
   if (!spec) {
-    throw new Error(
-      `unknown provider "${provider}". Known: ${Object.keys(PROVIDERS).join(", ")}`,
-    );
+    throw new Error(`unknown provider "${provider}". Known: ${Object.keys(PROVIDERS).join(", ")}`);
   }
   return { provider, spec };
 }

@@ -15,10 +15,7 @@ describe("defaultEditor", () => {
 
 describe("resolveEditor", () => {
   it("prefers GIT_EDITOR over VISUAL and EDITOR", () => {
-    const r = resolveEditor(
-      { GIT_EDITOR: "code --wait", VISUAL: "nano", EDITOR: "vim" },
-      "darwin",
-    );
+    const r = resolveEditor({ GIT_EDITOR: "code --wait", VISUAL: "nano", EDITOR: "vim" }, "darwin");
     expect(r.cmd).toBe("code");
     expect(r.args).toEqual(["--wait"]);
   });
