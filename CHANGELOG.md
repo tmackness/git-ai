@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/tmackness/git-ai/compare/git-ai-v0.2.0...git-ai-v0.2.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* Improve parsing robustness for editor commands and git status ([f387a22](https://github.com/tmackness/git-ai/commit/f387a22e9e5798ce67a98e50dc740f994e5817a8))
+
 ## [0.2.0](https://github.com/tmackness/git-ai/compare/git-ai-v0.1.0...git-ai-v0.2.0) (2026-05-18)
 
 
