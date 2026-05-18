@@ -41,4 +41,16 @@ describe("resolveEditor", () => {
     expect(r.cmd).toBe("subl");
     expect(r.args).toEqual(["-n", "-w"]);
   });
+
+  it("keeps quoted executable paths together", () => {
+    const r = resolveEditor({ EDITOR: '"C:\\Program Files\\Editor\\editor.exe" --wait' }, "win32");
+    expect(r.cmd).toBe("C:\\Program Files\\Editor\\editor.exe");
+    expect(r.args).toEqual(["--wait"]);
+  });
+
+  it("keeps quoted arguments together", () => {
+    const r = resolveEditor({ EDITOR: 'code --user-data-dir "/tmp/gitai data" --wait' }, "darwin");
+    expect(r.cmd).toBe("code");
+    expect(r.args).toEqual(["--user-data-dir", "/tmp/gitai data", "--wait"]);
+  });
 });

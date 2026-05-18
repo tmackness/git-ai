@@ -64,10 +64,14 @@ function detectWorkflow(repoRootPath: string): string[] {
 
 function changedFilePaths(nameStatus: string): string[] {
   return nameStatus
-    .trim()
-    .split("\n")
+    .split(/\r?\n/)
     .filter(Boolean)
-    .map((line) => line.trim().split(/\s+/).at(-1) ?? "")
+    .map((line) => {
+      const fields = line.split("\t");
+      if (fields.length >= 3 && /^[CR]/.test(fields[0] ?? "")) return fields.at(-1) ?? "";
+      if (fields.length >= 2) return fields[1] ?? "";
+      return line.trim().split(/\s+/).at(-1) ?? "";
+    })
     .filter(Boolean);
 }
 

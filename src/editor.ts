@@ -12,9 +12,57 @@ export function resolveEditor(
   platform: NodeJS.Platform = process.platform,
 ): { cmd: string; args: string[] } {
   const raw = env.GIT_EDITOR || env.VISUAL || env.EDITOR || defaultEditor(platform);
-  const parts = raw.trim().split(/\s+/);
-  const cmd = parts[0] ?? defaultEditor(platform);
+  const parts = parseEditorCommand(raw);
+  const cmd = parts[0] || defaultEditor(platform);
   return { cmd, args: parts.slice(1) };
+}
+
+function parseEditorCommand(raw: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let quote: "'" | '"' | undefined;
+
+  const input = raw.trim();
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]!;
+    if (ch === "\\") {
+      if (quote === "'") {
+        current += ch;
+        continue;
+      }
+      const next = input[i + 1];
+      if (next && (/\s/.test(next) || next === "'" || next === '"' || next === "\\")) {
+        current += next;
+        i++;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) {
+        quote = undefined;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (current) {
+        parts.push(current);
+        current = "";
+      }
+      continue;
+    }
+    current += ch;
+  }
+
+  if (current) parts.push(current);
+  return parts;
 }
 
 export function editInEditor(initial: string): string {

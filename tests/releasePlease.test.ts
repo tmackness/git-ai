@@ -83,6 +83,32 @@ describe("detectReleasePlease", () => {
     expect(context.packagePaths).toEqual(["."]);
     expect(context.affectedPackages).toEqual(["root-app"]);
   });
+
+  it("handles package paths with spaces and rename name-status records", () => {
+    const repo = tempRepo();
+    writeFileSync(
+      join(repo, "release-please-config.json"),
+      JSON.stringify({
+        packages: {
+          "packages/with space": {
+            "release-type": "node",
+            component: "space-pkg",
+          },
+          "packages/renamed": {
+            "release-type": "node",
+            component: "renamed-pkg",
+          },
+        },
+      }),
+    );
+
+    const context = detectReleasePlease(
+      repo,
+      "M\tpackages/with space/src/main.ts\nR100\tpackages/old/src/main.ts\tpackages/renamed/src/main.ts\n",
+    );
+
+    expect(context.affectedPackages).toEqual(["space-pkg", "renamed-pkg"]);
+  });
 });
 
 describe("renderReleasePleasePrompt", () => {
