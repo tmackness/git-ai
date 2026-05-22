@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/tmackness/git-ai/compare/git-ai-v0.2.1...git-ai-v0.3.0) (2026-05-22)
+
+
+### Features
+
+* **commit:** enhance commit body generation for complex diffs ([458a295](https://github.com/tmackness/git-ai/commit/458a295800746313ea226390c4e9ea7d9f843225))
+
 ## [0.2.1](https://github.com/tmackness/git-ai/compare/git-ai-v0.2.0...git-ai-v0.2.1) (2026-05-18)
 
 
