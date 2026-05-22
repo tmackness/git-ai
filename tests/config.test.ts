@@ -6,6 +6,7 @@ import {
   listProviders,
   DEFAULT_MODEL,
   PROVIDERS,
+  SYSTEM_PROMPT,
 } from "../src/config.js";
 
 describe("providerOf", () => {
@@ -110,5 +111,25 @@ describe("listProviders", () => {
 
   it("shows '(no key)' for keyless providers", () => {
     expect(listProviders()).toMatch(/ollama[\s\S]*\(no key\)/);
+  });
+});
+
+describe("SYSTEM_PROMPT", () => {
+  it("requires body coverage for multi-change diffs", () => {
+    expect(SYSTEM_PROMPT).toContain("first identify every distinct staged change");
+    expect(SYSTEM_PROMPT).toContain(
+      "include a body when the diff contains multiple distinct changes",
+    );
+    expect(SYSTEM_PROMPT).toContain("body bullets must cover every notable");
+    expect(SYSTEM_PROMPT).toContain("bug fix");
+    expect(SYSTEM_PROMPT).toContain(
+      "when feature and bug-fix changes are both present",
+    );
+  });
+
+  it("still allows one-line messages for small single-purpose diffs", () => {
+    expect(SYSTEM_PROMPT).toContain(
+      "omit the body only for a small, single-purpose diff",
+    );
   });
 });
