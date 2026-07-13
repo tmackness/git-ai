@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/tmackness/git-ai/compare/git-ai-v0.4.0...git-ai-v0.4.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* **prompt:** reduce repeated summary prompt tokens ([43826c5](https://github.com/tmackness/git-ai/commit/43826c5a476a288e137972ecac6ff0b32e7acaf2))
+
 ## [0.4.0](https://github.com/tmackness/git-ai/compare/git-ai-v0.3.0...git-ai-v0.4.0) (2026-07-13)
 
 
