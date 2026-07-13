@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/tmackness/git-ai/compare/git-ai-v0.4.1...git-ai-v0.5.0) (2026-07-13)
+
+
+### Features
+
+* implement batched summarization for large diffs ([61e7c9a](https://github.com/tmackness/git-ai/commit/61e7c9a391ad362667e4f7a8bc23dceae88f82f0))
+
 ## [0.4.1](https://github.com/tmackness/git-ai/compare/git-ai-v0.4.0...git-ai-v0.4.1) (2026-07-13)
 
 
