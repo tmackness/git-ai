@@ -1,6 +1,6 @@
 {
   "name": "@tma10011/git-ai",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "AI-generated git commit messages from the command line",
   "keywords": [
     "ai",
