@@ -1,7 +1,7 @@
 import { validateModel } from "./config.js";
 import { loadConfig, mergeConfig, saveConfig } from "./configFile.js";
 import { cloudflareModelOptions, directModelOptions, type ModelOption } from "./modelOptions.js";
-import { ask, readSecret, selectFromList } from "./prompt.js";
+import { ask, askYesNo, readSecret, selectFromList } from "./prompt.js";
 import { c, sym } from "./colors.js";
 
 type SetupMode = "direct" | "cloudflare";
@@ -15,6 +15,7 @@ interface SetupModeOption {
 export interface SetupPrompts {
   selectMode(options: SetupModeOption[]): Promise<SetupModeOption | null>;
   selectModel(options: ModelOption[]): Promise<ModelOption | null>;
+  confirmUseExisting?(key: string): Promise<boolean>;
   readText(prompt: string): Promise<string>;
   readSecret(prompt: string): Promise<string>;
 }
@@ -59,6 +60,9 @@ function defaultPrompts(): SetupPrompts {
     selectModel(options) {
       return selectFromList("Choose a default model:", options, renderModelOption);
     },
+    confirmUseExisting(key) {
+      return askYesNo(`${key} is already set. Keep it?`, true);
+    },
     readText(prompt) {
       return ask(prompt);
     },
@@ -72,7 +76,7 @@ async function readRequiredText(
   key: string,
 ): Promise<string> {
   const existing = env[key];
-  if (existing) return existing;
+  if (existing && (await confirmUseExisting(prompts, key))) return existing;
   return (await prompts.readText(`${key}: `)).trim();
 }
 
@@ -83,9 +87,13 @@ async function readTextWithDefault(
   fallback: string,
 ): Promise<string> {
   const existing = env[key];
-  if (existing) return existing;
+  if (existing && (await confirmUseExisting(prompts, key))) return existing;
   const answer = (await prompts.readText(`${key} [${fallback}]: `)).trim();
   return answer || fallback;
+}
+
+async function confirmUseExisting(prompts: SetupPrompts, key: string): Promise<boolean> {
+  return prompts.confirmUseExisting ? prompts.confirmUseExisting(key) : true;
 }
 
 export async function runSetupWizard(options: SetupOptions): Promise<number> {
@@ -140,7 +148,10 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
 
   if (selected.spec.apiKeyRequired !== false) {
     const existingKey = env[selected.spec.envVar];
-    const key = (existingKey ?? (await prompts.readSecret(`${selected.spec.envVar}: `))).trim();
+    const key =
+      existingKey && (await confirmUseExisting(prompts, selected.spec.envVar))
+        ? existingKey.trim()
+        : (await prompts.readSecret(`${selected.spec.envVar}: `)).trim();
     if (!key) {
       stderr.write(`${c.red(c.bold("gitai:"))} API key cannot be empty\n`);
       return 1;

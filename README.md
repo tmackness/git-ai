@@ -117,7 +117,7 @@ Cloudflare AI Gateway uses model ids like `cloudflare:<provider>/<model>`, for e
 - **Streams in real time.** You watch the message form as the model writes it.
 - **Confirm before commit.** Every message is shown and approved by you.
 - **Conventional Commits out of the box.** The system prompt enforces `type(scope): subject` formatting.
-- **Covers broad diffs.** Multi-change commits get a body that calls out the notable features, fixes, docs, tests, and build/config changes.
+- **Covers broad diffs.** Multi-change commits are summarized from bounded per-file staged diff chunks first, then drafted from that checklist so the body can cover notable features, fixes, docs, tests, and build/config changes across the whole commit.
 - **Flexible provider setup.** Switch between direct provider keys, Cloudflare AI Gateway, Ollama, and more with a flag.
 - **Cross-platform.** macOS, Linux, Windows — all tested in CI.
 

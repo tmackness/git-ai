@@ -117,6 +117,10 @@ describe("listProviders", () => {
 describe("SYSTEM_PROMPT", () => {
   it("requires body coverage for multi-change diffs", () => {
     expect(SYSTEM_PROMPT).toContain("first identify every distinct staged change");
+    expect(SYSTEM_PROMPT).toContain("use the staged overview and file list as a coverage checklist");
+    expect(SYSTEM_PROMPT).toContain("do not ignore");
+    expect(SYSTEM_PROMPT).toContain("intermediate staged-change checklist");
+    expect(SYSTEM_PROMPT).toContain("if the diff is truncated");
     expect(SYSTEM_PROMPT).toContain(
       "include a body when the diff contains multiple distinct changes",
     );

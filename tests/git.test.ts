@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { MAX_DIFF_CHARS } from "../src/config.js";
 import {
   isGitRepo,
   repoRoot,
@@ -10,6 +11,7 @@ import {
   addPaths,
   hasStagedChanges,
   stagedDiff,
+  stagedDiffChunks,
   stagedFiles,
   stagedSummary,
   commitWithMessage,
@@ -117,6 +119,56 @@ describe("git module (integration against a real temp repo)", () => {
     const diff = stagedDiff();
     expect(diff).toContain("alpha");
     expect(diff).toContain("a.txt");
+  });
+
+  it("stagedDiffChunks returns one bounded diff per staged file", () => {
+    writeFileSync(join(tmp, "a.txt"), "alpha\n");
+    writeFileSync(join(tmp, "b.txt"), "beta\n");
+    addPaths(["a.txt", "b.txt"]);
+
+    const chunks = stagedDiffChunks();
+    expect(chunks).toHaveLength(2);
+    expect(chunks.map((chunk) => chunk.path)).toEqual(["a.txt", "b.txt"]);
+    expect(chunks[0]!.status).toBe("A");
+    expect(chunks[0]!.diff).toContain("alpha");
+    expect(chunks[1]!.diff).toContain("beta");
+  });
+
+  it("stagedDiffChunks preserves rename metadata", () => {
+    writeFileSync(join(tmp, "old.txt"), "alpha\n");
+    addPaths(["old.txt"]);
+    commitWithMessage("chore: add old file");
+
+    gitOk(["mv", "old.txt", "new.txt"], tmp);
+    const chunks = stagedDiffChunks();
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]!.status).toMatch(/^R/);
+    expect(chunks[0]!.previousPath).toBe("old.txt");
+    expect(chunks[0]!.path).toBe("new.txt");
+    expect(chunks[0]!.diff).toContain("old.txt");
+    expect(chunks[0]!.diff).toContain("new.txt");
+  });
+
+  it("stagedDiff returns a bounded diff for changes larger than spawnSync's default buffer", () => {
+    writeFileSync(join(tmp, "big.txt"), "alpha\n".repeat(220_000));
+    addPaths(["big.txt"]);
+    const diff = stagedDiff();
+    expect(diff).toContain("big.txt");
+    expect(diff).toContain("[... diff truncated ...]");
+    expect(diff.length).toBeLessThanOrEqual(MAX_DIFF_CHARS);
+  });
+
+  it("stagedDiffChunks bounds each large file diff independently", () => {
+    writeFileSync(join(tmp, "first.txt"), "alpha\n".repeat(80_000));
+    writeFileSync(join(tmp, "second.txt"), "beta\n".repeat(80_000));
+    addPaths(["first.txt", "second.txt"]);
+
+    const chunks = stagedDiffChunks();
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]!.diff).toContain("[... file diff truncated ...]");
+    expect(chunks[1]!.diff).toContain("[... file diff truncated ...]");
+    expect(chunks[0]!.diff).toContain("first.txt");
+    expect(chunks[1]!.diff).toContain("second.txt");
   });
 
   it("stagedSummary returns a bounded stat summary for staged changes", () => {

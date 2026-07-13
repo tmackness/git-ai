@@ -113,10 +113,17 @@ Rules:
 - subject: imperative mood, lowercase after the type, no trailing period, ≤72 chars
 - first identify every distinct staged change, then group related changes by
   user intent before writing the message
+- use the staged overview and file list as a coverage checklist; do not ignore
+  later files because an earlier diff hunk was more detailed
+- when an intermediate staged-change checklist is provided, treat it as the
+  source of truth for coverage
 - choose the header type for the dominant or highest-release-impact change
 - include a body when the diff contains multiple distinct changes
 - body bullets must cover every notable user-visible behavior change, bug fix,
-  performance change, config/build/doc/test change, and breaking change
+  performance change, config/build/doc/test change, and breaking change, grouping
+  related file-level changes when that is clearer than a file-by-file walkthrough
+- if the diff is truncated, still summarize the known effect of every changed
+  file or related file group from paths, statuses, and stat summary
 - when feature and bug-fix changes are both present, mention both in the body
   even though the header has one type
 - omit the body only for a small, single-purpose diff whose effect is fully

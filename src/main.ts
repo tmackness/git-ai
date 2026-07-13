@@ -11,7 +11,7 @@ import {
   hasCommits,
   addPaths,
   hasStagedChanges,
-  stagedDiff,
+  stagedDiffChunks,
   stagedFiles,
   stagedSummary,
   commitWithMessage,
@@ -352,8 +352,10 @@ export async function main(
   }
 
   const initialCommit = !hasCommits();
-  const diff = initialCommit ? "" : stagedDiff();
+  const diff = "";
+  const diffChunks = initialCommit ? undefined : stagedDiffChunks();
   const files = initialCommit ? stagedSummary() : stagedFiles();
+  const summary = initialCommit ? undefined : stagedSummary();
   const detectedReleasePlease = detectReleasePlease(root, initialCommit ? "" : files);
   const releasePlease: ReleasePleaseContext | undefined =
     forceReleasePlease && !detectedReleasePlease?.detected
@@ -394,6 +396,8 @@ export async function main(
     modelId,
     diff,
     files,
+    summary,
+    diffChunks,
     hint,
     releasePlease,
     initialCommit,
@@ -426,6 +430,8 @@ export async function main(
         modelId,
         diff,
         files,
+        summary,
+        diffChunks,
         hint,
         releasePlease,
         initialCommit,

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { truncateDiff, cleanMessage, buildUserPrompt } from "../src/format.js";
+import {
+  truncateDiff,
+  cleanMessage,
+  buildUserPrompt,
+  buildChangeSummaryPrompt,
+  buildChecklistCommitPrompt,
+} from "../src/format.js";
 
 describe("truncateDiff", () => {
   it("leaves a short diff unchanged", () => {
@@ -52,6 +58,22 @@ describe("buildUserPrompt", () => {
     expect(out).toContain("```diff");
   });
 
+  it("includes the staged overview as a coverage checklist", () => {
+    const out = buildUserPrompt(
+      "DIFF_BODY",
+      "M  src/foo.ts\nA  tests/foo.test.ts",
+      undefined,
+      undefined,
+      "diff",
+      " src/foo.ts | 8 ++++++++\n tests/foo.test.ts | 20 ++++++++++++++++++++",
+    );
+
+    expect(out).toContain("Treat the overview and file list as a coverage checklist");
+    expect(out).toContain("Staged change overview");
+    expect(out).toContain("tests/foo.test.ts | 20");
+    expect(out).toContain("Do not focus only on the first diff hunk");
+  });
+
   it("uses a bounded summary prompt for initial commits", () => {
     const out = buildUserPrompt(
       "",
@@ -90,5 +112,48 @@ describe("buildUserPrompt", () => {
     expect(out).toContain("This repository uses release-please.");
     expect(out).toContain("Affected release package(s): cli");
     expect(out).toContain("never generate chore(release): messages");
+  });
+});
+
+describe("two-pass broad diff prompts", () => {
+  it("builds a per-file summary prompt from diff chunks", () => {
+    const out = buildChangeSummaryPrompt(
+      [
+        {
+          status: "M",
+          path: "src/foo.ts",
+          diff: "diff --git a/src/foo.ts b/src/foo.ts\n+export const foo = 1;\n",
+        },
+        {
+          status: "R100",
+          previousPath: "src/old.ts",
+          path: "src/new.ts",
+          diff: "diff --git a/src/old.ts b/src/new.ts\nsimilarity index 100%\n",
+        },
+      ],
+      "M\tsrc/foo.ts\nR100\tsrc/old.ts\tsrc/new.ts",
+      " src/foo.ts | 1 +",
+      "prefer cli scope",
+    );
+
+    expect(out).toContain("one bullet per changed file");
+    expect(out).toContain("Complete staged file list");
+    expect(out).toContain("File: M src/foo.ts");
+    expect(out).toContain("File: R100 src/old.ts -> src/new.ts");
+    expect(out).toContain("Extra context from the developer: prefer cli scope");
+    expect(out).not.toContain("Write the final Conventional Commit");
+  });
+
+  it("builds the final commit prompt from the intermediate checklist", () => {
+    const out = buildChecklistCommitPrompt(
+      "- src/foo.ts: adds foo behavior\n- tests/foo.test.ts: covers foo",
+      "M\tsrc/foo.ts\nA\ttests/foo.test.ts",
+      " src/foo.ts | 5 +++++",
+    );
+
+    expect(out).toContain("source of truth for coverage");
+    expect(out).toContain("Intermediate staged-change checklist");
+    expect(out).toContain("tests/foo.test.ts: covers foo");
+    expect(out).not.toContain("```diff");
   });
 });
