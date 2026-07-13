@@ -25,10 +25,11 @@ Output format:
 
 Rules:
 - cover every file in the provided diff batch
+- ignore files that are not in the provided diff batch
 - group files only when they clearly implement one intent
 - include important behavior, API, docs, test, build, config, and release-impact details
-- if the diff is truncated or binary, state the best inference from path, status, and stat overview
-- output ONLY the checklist - no preamble, no markdown fences, no final commit message`;
+- if the diff is truncated or binary, state the best inference from the batch path, status, and available diff
+- output ONLY bullets - no heading, preamble, markdown fences, or final commit message`;
 
 const MAX_SUMMARY_BATCH_CHARS = 50_000;
 
@@ -146,15 +147,13 @@ async function readStreamedText(
 async function summarizeChanges(
   model: LanguageModelV1,
   chunks: readonly StagedDiffChunk[],
-  files: string,
-  summary: string | undefined,
   hint: string | undefined,
 ): Promise<string> {
   const summaries: string[] = [];
   const batches = summaryBatches(chunks);
 
   for (let i = 0; i < batches.length; i++) {
-    const prompt = buildChangeSummaryPrompt(batches[i]!, files, summary, hint);
+    const prompt = buildChangeSummaryPrompt(batches[i]!, hint);
     const raw = await readStreamedText(model, CHANGE_SUMMARY_SYSTEM_PROMPT, prompt, 1536);
     summaries.push(`Batch ${i + 1}:\n${cleanMessage(raw)}`);
   }
@@ -169,7 +168,7 @@ export async function generateMessage(opts: GenerateOptions): Promise<string> {
   const prompt =
     !initialCommit && diffChunks && diffChunks.length > 0
       ? buildChecklistCommitPrompt(
-          await summarizeChanges(model, diffChunks, files, summary, hint),
+          await summarizeChanges(model, diffChunks, hint),
           files,
           summary,
           hint,

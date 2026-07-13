@@ -131,17 +131,18 @@ describe("two-pass broad diff prompts", () => {
           diff: "diff --git a/src/old.ts b/src/new.ts\nsimilarity index 100%\n",
         },
       ],
-      "M\tsrc/foo.ts\nR100\tsrc/old.ts\tsrc/new.ts",
-      " src/foo.ts | 1 +",
       "prefer cli scope",
     );
 
-    expect(out).toContain("one bullet per changed file");
-    expect(out).toContain("Complete staged file list");
+    expect(out).toContain("one concise bullet per changed file");
+    expect(out).toContain("Only summarize files listed in this batch");
+    expect(out).toContain("Batch files");
     expect(out).toContain("File: M src/foo.ts");
     expect(out).toContain("File: R100 src/old.ts -> src/new.ts");
     expect(out).toContain("Extra context from the developer: prefer cli scope");
     expect(out).not.toContain("Write the final Conventional Commit");
+    expect(out).not.toContain("Complete staged file list");
+    expect(out).not.toContain("Complete staged change overview");
   });
 
   it("builds the final commit prompt from the intermediate checklist", () => {

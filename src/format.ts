@@ -81,23 +81,24 @@ export function renderDiffChunk(chunk: DiffChunkForPrompt): string {
   ].join("\n");
 }
 
+function renderBatchFileList(chunks: readonly DiffChunkForPrompt[]): string {
+  return chunks.map(renderChunkHeading).join("\n");
+}
+
 export function buildChangeSummaryPrompt(
   chunks: readonly DiffChunkForPrompt[],
-  files: string,
-  summary?: string,
   hint?: string,
 ): string {
   const parts = [
     "Summarize the staged changes in this diff batch before a final commit message is written.",
-    "Return a concise checklist, with one bullet per changed file or tightly related file group.",
-    "Each bullet must name the relevant path(s), status, and inferred effect. If a diff is truncated or binary, summarize what can be inferred from the path, status, and stat overview.",
-    "Do not write a commit message yet.",
+    "Only summarize files listed in this batch. Ignore files that are not in the batch.",
+    "Return one concise bullet per changed file or tightly related file group.",
+    "Each bullet must name the relevant path(s), status, and inferred effect.",
+    "If a diff is truncated or binary, infer only from the batch path, status, and available diff.",
+    "Output only bullets. No heading, preamble, markdown fences, or final commit message.",
     "",
-    "Complete staged change overview (`git diff --staged --stat=80,60,200`):",
-    summary?.trim() || "(not provided)",
-    "",
-    "Complete staged file list (`git diff --staged --name-status`):",
-    files.trim(),
+    "Batch files (`git diff --staged --name-status`, limited to this batch):",
+    renderBatchFileList(chunks),
     "",
     "Diff batch:",
     chunks.map(renderDiffChunk).join("\n\n"),
