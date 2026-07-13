@@ -7,7 +7,7 @@ import { groq } from "@ai-sdk/groq";
 import { xai } from "@ai-sdk/xai";
 import { deepseek } from "@ai-sdk/deepseek";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { PROVIDERS, SYSTEM_PROMPT, modelNameOf, providerOf } from "./config.js";
+import { MAX_DIFF_CHARS, PROVIDERS, SYSTEM_PROMPT, modelNameOf, providerOf } from "./config.js";
 import {
   buildChangeSummaryPrompt,
   buildChecklistCommitPrompt,
@@ -32,6 +32,7 @@ Rules:
 - output ONLY bullets - no heading, preamble, markdown fences, or final commit message`;
 
 const MAX_SUMMARY_BATCH_CHARS = 50_000;
+const SUMMARY_CONCURRENCY = 4;
 
 function cloudflareBaseURL(): string {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -96,10 +97,27 @@ export interface GenerateOptions {
   files: string;
   summary?: string;
   diffChunks?: readonly StagedDiffChunk[];
+  /** Reuse a checklist from a previous generation instead of re-summarizing. */
+  checklist?: string;
   hint?: string;
   releasePlease?: ReleasePleaseContext;
   initialCommit?: boolean;
   onChunk?: (chunk: string) => void;
+  onSummaryProgress?: (done: number, total: number) => void;
+}
+
+export interface GenerateResult {
+  message: string;
+  /** Set when batched summarization ran; pass back in to skip it on regeneration. */
+  checklist?: string;
+  usage: GenerationUsage;
+}
+
+export interface GenerationUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  requests: number;
 }
 
 function summaryBatches(chunks: readonly StagedDiffChunk[]): StagedDiffChunk[][] {
@@ -122,13 +140,19 @@ function summaryBatches(chunks: readonly StagedDiffChunk[]): StagedDiffChunk[][]
   return batches;
 }
 
+interface StreamedText {
+  text: string;
+  promptTokens: number;
+  completionTokens: number;
+}
+
 async function readStreamedText(
   model: LanguageModelV1,
   system: string,
   prompt: string,
   maxTokens: number,
   onChunk?: (chunk: string) => void,
-): Promise<string> {
+): Promise<StreamedText> {
   const result = streamText({
     model,
     system,
@@ -141,41 +165,101 @@ async function readStreamedText(
     text += chunk;
     onChunk?.(chunk);
   }
-  return text;
+
+  // Some OpenAI-compatible endpoints report no usage; the SDK then yields NaN.
+  const usage = await result.usage;
+  return {
+    text,
+    promptTokens: Number.isFinite(usage?.promptTokens) ? usage.promptTokens : 0,
+    completionTokens: Number.isFinite(usage?.completionTokens) ? usage.completionTokens : 0,
+  };
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]!, i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 async function summarizeChanges(
   model: LanguageModelV1,
   chunks: readonly StagedDiffChunk[],
   hint: string | undefined,
-): Promise<string> {
-  const summaries: string[] = [];
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ checklist: string; promptTokens: number; completionTokens: number; requests: number }> {
   const batches = summaryBatches(chunks);
+  let done = 0;
 
-  for (let i = 0; i < batches.length; i++) {
-    const prompt = buildChangeSummaryPrompt(batches[i]!, hint);
-    const raw = await readStreamedText(model, CHANGE_SUMMARY_SYSTEM_PROMPT, prompt, 1536);
-    summaries.push(`Batch ${i + 1}:\n${cleanMessage(raw)}`);
-  }
+  const results = await mapWithConcurrency(batches, SUMMARY_CONCURRENCY, async (batch, i) => {
+    const prompt = buildChangeSummaryPrompt(batch, hint);
+    const streamed = await readStreamedText(model, CHANGE_SUMMARY_SYSTEM_PROMPT, prompt, 1536);
+    onProgress?.(++done, batches.length);
+    return { ...streamed, summary: `Batch ${i + 1}:\n${cleanMessage(streamed.text)}` };
+  });
 
-  return summaries.join("\n\n");
+  return {
+    checklist: results.map((r) => r.summary).join("\n\n"),
+    promptTokens: results.reduce((sum, r) => sum + r.promptTokens, 0),
+    completionTokens: results.reduce((sum, r) => sum + r.completionTokens, 0),
+    requests: batches.length,
+  };
 }
 
-export async function generateMessage(opts: GenerateOptions): Promise<string> {
-  const { modelId, diff, files, summary, diffChunks, hint, releasePlease, initialCommit, onChunk } =
-    opts;
+export async function generateMessage(opts: GenerateOptions): Promise<GenerateResult> {
+  const {
+    modelId,
+    diff,
+    files,
+    summary,
+    diffChunks,
+    hint,
+    releasePlease,
+    initialCommit,
+    onChunk,
+    onSummaryProgress,
+  } = opts;
   const model = getModel(modelId);
-  const prompt =
+
+  const combinedDiff =
     !initialCommit && diffChunks && diffChunks.length > 0
-      ? buildChecklistCommitPrompt(
-          await summarizeChanges(model, diffChunks, hint),
-          files,
-          summary,
-          hint,
-          releasePlease,
-        )
+      ? diffChunks.map((chunk) => chunk.diff).join("\n")
+      : diff;
+
+  let checklist = opts.checklist;
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let requests = 0;
+
+  if (
+    checklist === undefined &&
+    !initialCommit &&
+    diffChunks &&
+    diffChunks.length > 0 &&
+    combinedDiff.length > MAX_DIFF_CHARS
+  ) {
+    const summarized = await summarizeChanges(model, diffChunks, hint, onSummaryProgress);
+    checklist = summarized.checklist;
+    promptTokens += summarized.promptTokens;
+    completionTokens += summarized.completionTokens;
+    requests += summarized.requests;
+  }
+
+  const prompt =
+    checklist !== undefined
+      ? buildChecklistCommitPrompt(checklist, files, summary, hint, releasePlease)
       : buildUserPrompt(
-          diff,
+          combinedDiff,
           files,
           hint,
           releasePlease,
@@ -183,13 +267,25 @@ export async function generateMessage(opts: GenerateOptions): Promise<string> {
           summary,
         );
 
-  const message = await readStreamedText(
+  const streamed = await readStreamedText(
     model,
     SYSTEM_PROMPT,
     prompt,
     2048,
     onChunk,
   );
+  promptTokens += streamed.promptTokens;
+  completionTokens += streamed.completionTokens;
+  requests += 1;
 
-  return cleanMessage(message);
+  return {
+    message: cleanMessage(streamed.text),
+    checklist,
+    usage: {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+      requests,
+    },
+  };
 }

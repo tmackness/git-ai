@@ -101,6 +101,37 @@ interface Keypress {
   sequence?: string;
 }
 
+/**
+ * Truncate a line to a visible width, ignoring ANSI color codes. Rendered
+ * select lines must never wrap: the redraw moves the cursor up by line
+ * count, and a wrapped line occupies two terminal rows, which leaves stale
+ * frames on screen.
+ */
+export function truncateToWidth(line: string, width: number): string {
+  const ansi = /\x1b\[[0-9;]*m/g;
+  const plain = line.replace(ansi, "");
+  if (plain.length <= width) return line;
+  if (width <= 0) return "";
+  let out = "";
+  let visible = 0;
+  let i = 0;
+  while (i < line.length) {
+    ansi.lastIndex = i;
+    const match = ansi.exec(line);
+    if (match && match.index === i) {
+      out += match[0];
+      i += match[0].length;
+      continue;
+    }
+    if (visible === width - 1) break;
+    out += line[i];
+    visible++;
+    i++;
+  }
+  const reset = plain.length === line.length ? "" : "\x1b[0m";
+  return `${out}…${reset}`;
+}
+
 async function selectFromSectionsTTY<T>(
   prompt: string,
   sections: SelectSection<T>[],
@@ -142,7 +173,8 @@ async function selectFromSectionsTTY<T>(
       lines.push(`${prefix} ${rowIdx === selected ? c.bold(content) : content}`);
     }
     if (end < rows.length) lines.push(c.dim(`… ${rows.length - end} more below`));
-    stdout.write(lines.join("\n") + "\n");
+    const maxWidth = (stdout.columns ?? 80) - 1;
+    stdout.write(lines.map((line) => truncateToWidth(line, maxWidth)).join("\n") + "\n");
     renderedRows = lines.length;
   };
 

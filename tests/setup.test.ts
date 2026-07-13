@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Writable } from "node:stream";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSetupWizard } from "../src/setup.js";
@@ -204,6 +204,66 @@ describe("runSetupWizard", () => {
         env: {
           CLOUDFLARE_ACCOUNT_ID: "account-env",
           CLOUDFLARE_AI_GATEWAY_ID: "gateway-env",
+        },
+      });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("reuses saved Cloudflare config when only changing the model", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "gitai-setup-"));
+    const config = join(tmp, "config.json");
+    const streams = captureStreams();
+    const confirmedKeys: string[] = [];
+
+    writeFileSync(
+      config,
+      JSON.stringify({
+        defaultModel: "cloudflare:openai/gpt-4o-mini",
+        apiKeys: { CLOUDFLARE_AI_GATEWAY_API_KEY: "cf-token" },
+        env: { CLOUDFLARE_ACCOUNT_ID: "account-123", CLOUDFLARE_AI_GATEWAY_ID: "my-gateway" },
+      }),
+    );
+
+    try {
+      const code = await runSetupWizard({
+        stdout: streams.stdout,
+        stderr: streams.stderr,
+        env: { GITAI_CONFIG: config },
+        prompts: {
+          selectMode: async (options) =>
+            options.find((option) => option.mode === "cloudflare") ?? null,
+          selectModel: async (options) =>
+            options.find((option) => option.modelId === "cloudflare:anthropic/claude-sonnet-4-5") ??
+            null,
+          confirmUseExisting: async (key) => {
+            confirmedKeys.push(key);
+            return true;
+          },
+          readText: async () => {
+            throw new Error("should not read text");
+          },
+          readSecret: async () => {
+            throw new Error("should not read a key");
+          },
+        },
+      });
+
+      expect(code).toBe(0);
+      expect(confirmedKeys).toEqual([
+        "CLOUDFLARE_ACCOUNT_ID",
+        "CLOUDFLARE_AI_GATEWAY_ID",
+        "CLOUDFLARE_AI_GATEWAY_API_KEY",
+      ]);
+      expect(JSON.parse(readFileSync(config, "utf8"))).toEqual({
+        defaultModel: "cloudflare:anthropic/claude-sonnet-4-5",
+        apiKeys: {
+          CLOUDFLARE_AI_GATEWAY_API_KEY: "cf-token",
+        },
+        env: {
+          CLOUDFLARE_ACCOUNT_ID: "account-123",
+          CLOUDFLARE_AI_GATEWAY_ID: "my-gateway",
         },
       });
     } finally {

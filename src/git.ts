@@ -6,6 +6,7 @@ import { MAX_DIFF_CHARS } from "./config.js";
 
 const MAX_STAGED_FILES_CHARS = 200_000;
 const MAX_STAGED_FILE_DIFF_CHARS = 20_000;
+const MAX_COMBINED_DIFF_CHARS = 10_000_000;
 const DIFF_TRUNCATED_MARKER = "\n\n[... diff truncated ...]";
 const FILES_TRUNCATED_MARKER = "\n\n[... file list truncated ...]";
 const FILE_DIFF_TRUNCATED_MARKER = "\n\n[... file diff truncated ...]";
@@ -165,8 +166,23 @@ export function stagedDiff(): string {
   return r.stdout;
 }
 
-export function stagedDiffChunks(): StagedDiffChunk[] {
-  return stagedPathRecords().map((record) => {
+function splitCombinedDiff(combined: string): string[] {
+  if (!combined.startsWith("diff --git ")) return [];
+  const segments: string[] = [];
+  let start = 0;
+  while (start < combined.length) {
+    const next = combined.indexOf("\ndiff --git ", start);
+    const end = next === -1 ? combined.length : next + 1;
+    segments.push(combined.slice(start, end));
+    start = end;
+  }
+  return segments;
+}
+
+function stagedDiffChunksPerFile(
+  records: Array<Omit<StagedDiffChunk, "diff">>,
+): StagedDiffChunk[] {
+  return records.map((record) => {
     const paths = record.previousPath ? [record.previousPath, record.path] : [record.path];
     const r = runWithBoundedStdout(
       ["diff", "--staged", "--", ...paths],
@@ -178,6 +194,32 @@ export function stagedDiffChunks(): StagedDiffChunk[] {
     }
     return { ...record, diff: r.stdout };
   });
+}
+
+export function stagedDiffChunks(): StagedDiffChunk[] {
+  const records = stagedPathRecords();
+  if (records.length === 0) return [];
+
+  const r = runWithBoundedStdout(["diff", "--staged"], MAX_COMBINED_DIFF_CHARS, DIFF_TRUNCATED_MARKER);
+  if (r.status !== 0) {
+    throw new GitError("git diff --staged failed", r.status, r.stderr);
+  }
+
+  // One git spawn instead of one per file. Diff segments and name-status
+  // records come from the same diff queue, so they align by order; if they
+  // don't (index changed mid-read, combined output truncated), fall back to
+  // the slower per-file reads rather than mislabeling diffs.
+  const segments = splitCombinedDiff(r.stdout);
+  if (segments.length !== records.length) return stagedDiffChunksPerFile(records);
+
+  return records.map((record, i) => ({
+    ...record,
+    diff: truncateWithMarker(
+      segments[i]!,
+      MAX_STAGED_FILE_DIFF_CHARS,
+      FILE_DIFF_TRUNCATED_MARKER,
+    ),
+  }));
 }
 
 export function stagedFiles(): string {

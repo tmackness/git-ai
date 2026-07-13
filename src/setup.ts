@@ -72,21 +72,19 @@ function defaultPrompts(): SetupPrompts {
 
 async function readRequiredText(
   prompts: SetupPrompts,
-  env: NodeJS.ProcessEnv,
+  existing: string | undefined,
   key: string,
 ): Promise<string> {
-  const existing = env[key];
   if (existing && (await confirmUseExisting(prompts, key))) return existing;
   return (await prompts.readText(`${key}: `)).trim();
 }
 
 async function readTextWithDefault(
   prompts: SetupPrompts,
-  env: NodeJS.ProcessEnv,
+  existing: string | undefined,
   key: string,
   fallback: string,
 ): Promise<string> {
-  const existing = env[key];
   if (existing && (await confirmUseExisting(prompts, key))) return existing;
   const answer = (await prompts.readText(`${key} [${fallback}]: `)).trim();
   return answer || fallback;
@@ -99,6 +97,7 @@ async function confirmUseExisting(prompts: SetupPrompts, key: string): Promise<b
 export async function runSetupWizard(options: SetupOptions): Promise<number> {
   const { stdout, stderr, env, platform = process.platform } = options;
   const prompts = options.prompts ?? defaultPrompts();
+  const saved = loadConfig(env, platform);
 
   stdout.write(`${c.bold("gitai setup")}\n\n`);
 
@@ -130,7 +129,11 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
   };
 
   if (mode.mode === "cloudflare") {
-    const accountId = await readRequiredText(prompts, env, "CLOUDFLARE_ACCOUNT_ID");
+    const accountId = await readRequiredText(
+      prompts,
+      env.CLOUDFLARE_ACCOUNT_ID ?? saved.env?.CLOUDFLARE_ACCOUNT_ID,
+      "CLOUDFLARE_ACCOUNT_ID",
+    );
     if (!accountId) {
       stderr.write(`${c.red(c.bold("gitai:"))} CLOUDFLARE_ACCOUNT_ID cannot be empty\n`);
       return 1;
@@ -139,7 +142,7 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
 
     const gatewayId = await readTextWithDefault(
       prompts,
-      env,
+      env.CLOUDFLARE_AI_GATEWAY_ID ?? saved.env?.CLOUDFLARE_AI_GATEWAY_ID,
       "CLOUDFLARE_AI_GATEWAY_ID",
       "default",
     );
@@ -147,7 +150,7 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
   }
 
   if (selected.spec.apiKeyRequired !== false) {
-    const existingKey = env[selected.spec.envVar];
+    const existingKey = env[selected.spec.envVar] ?? saved.apiKeys?.[selected.spec.envVar];
     const key =
       existingKey && (await confirmUseExisting(prompts, selected.spec.envVar))
         ? existingKey.trim()
@@ -159,7 +162,7 @@ export async function runSetupWizard(options: SetupOptions): Promise<number> {
     overlay.apiKeys[selected.spec.envVar] = key;
   }
 
-  const saved = saveConfig(mergeConfig(loadConfig(env, platform), overlay), env, platform);
-  stdout.write(`\n${c.green(sym.check)} saved ${c.bold(selected.modelId)} to ${saved}\n`);
+  const savedPath = saveConfig(mergeConfig(saved, overlay), env, platform);
+  stdout.write(`\n${c.green(sym.check)} saved ${c.bold(selected.modelId)} to ${savedPath}\n`);
   return 0;
 }

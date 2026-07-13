@@ -171,6 +171,19 @@ describe("git module (integration against a real temp repo)", () => {
     expect(chunks[1]!.diff).toContain("second.txt");
   });
 
+  it("stagedDiffChunks is not confused by content lines that look like diff headers", () => {
+    writeFileSync(join(tmp, "a.txt"), "diff --git a/x b/x\nplain line\n");
+    writeFileSync(join(tmp, "b.txt"), "beta\n");
+    addPaths(["a.txt", "b.txt"]);
+
+    const chunks = stagedDiffChunks();
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]!.path).toBe("a.txt");
+    expect(chunks[0]!.diff).toContain("+diff --git a/x b/x");
+    expect(chunks[1]!.path).toBe("b.txt");
+    expect(chunks[1]!.diff).toContain("beta");
+  });
+
   it("stagedSummary returns a bounded stat summary for staged changes", () => {
     writeFileSync(join(tmp, "a.txt"), `${"alpha\n".repeat(1000)}`);
     addPaths(["a.txt"]);

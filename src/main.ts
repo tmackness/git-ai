@@ -16,7 +16,7 @@ import {
   stagedSummary,
   commitWithMessage,
 } from "./git.js";
-import { generateMessage } from "./generate.js";
+import { generateMessage, type GenerationUsage } from "./generate.js";
 import { detectReleasePlease, type ReleasePleaseContext } from "./releasePlease.js";
 import { editInEditor } from "./editor.js";
 import { ask, selectFromList, selectFromSections } from "./prompt.js";
@@ -380,6 +380,16 @@ export async function main(
   );
   let hint = values.prompt as string | undefined;
   const printChunk = (chunk: string) => stdout.write(c.dim(chunk));
+  const printSummaryProgress = (done: number, total: number) =>
+    stdout.write(c.dim(`${sym.arrow} summarized diff batch ${done}/${total}\n`));
+  const printUsage = (usage: GenerationUsage) => {
+    const requests = `${usage.requests} ${usage.requests === 1 ? "request" : "requests"}`;
+    const tokens =
+      usage.totalTokens > 0
+        ? ` ${sym.bullet} ${usage.promptTokens.toLocaleString("en-US")} tokens in ${sym.bullet} ${usage.completionTokens.toLocaleString("en-US")} tokens out`
+        : "";
+    stdout.write(c.dim(`${sym.arrow} ${requests}${tokens}\n`));
+  };
 
   stdout.write(`\n${header(modelId)}\n\n`);
   stdout.write(
@@ -392,7 +402,7 @@ export async function main(
   }
   stdout.write(`${c.dim(`${sym.arrow} generating commit message...`)}\n\n`);
 
-  let message = await generateMessage({
+  const first = await generateMessage({
     modelId,
     diff,
     files,
@@ -402,8 +412,12 @@ export async function main(
     releasePlease,
     initialCommit,
     onChunk: printChunk,
+    onSummaryProgress: printSummaryProgress,
   });
+  let message = first.message;
+  let checklist = first.checklist;
   stdout.write("\n");
+  printUsage(first.usage);
 
   while (!values.yes) {
     const choice = await chooseCommitAction();
@@ -426,18 +440,23 @@ export async function main(
       }
       const label = choice === "instruct" ? "regenerating with instructions..." : "regenerating...";
       stdout.write(`\n${c.dim(`${sym.arrow} ${label}`)}\n\n`);
-      message = await generateMessage({
+      const regen = await generateMessage({
         modelId,
         diff,
         files,
         summary,
         diffChunks,
+        checklist,
         hint,
         releasePlease,
         initialCommit,
         onChunk: printChunk,
+        onSummaryProgress: printSummaryProgress,
       });
+      message = regen.message;
+      checklist ??= regen.checklist;
       stdout.write("\n");
+      printUsage(regen.usage);
       continue;
     }
   }

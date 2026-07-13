@@ -1,6 +1,9 @@
 export const DEFAULT_MODEL = "openai:gpt-4o-mini";
 
-export const MAX_DIFF_CHARS = 60_000;
+// ~25k tokens — fits every provider's 32k+ context with room for the
+// system prompt and output. Diffs larger than this go through batched
+// summarization instead of truncation.
+export const MAX_DIFF_CHARS = 100_000;
 
 export interface ProviderSpec {
   /** Env var that holds the API key. */
